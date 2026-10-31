@@ -1,11 +1,11 @@
 "use client";
 
 import React from "react";
-import { useTheme } from "@/lib/theme";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, Sun, Moon, FileText, Zap } from "lucide-react";
+import { Menu, FileText, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface TopBarProps {
   currentTabName: string;
@@ -20,7 +20,6 @@ export function TopBar({
   onOpenNewSession,
   onOpenMobileMenu,
 }: TopBarProps) {
-  const { resolvedTheme, toggleTheme } = useTheme();
 
   return (
     <header className="h-14 bg-card text-card-foreground border-b border-border sticky top-0 z-10 px-4 sm:px-6 flex items-center justify-between gap-4">
@@ -78,19 +77,7 @@ export function TopBar({
         </a>
 
         {/* Dark/Light Theme Toggle */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={toggleTheme}
-          aria-label={resolvedTheme === "dark" ? "Chuyển sang giao diện sáng" : "Chuyển sang giao diện tối"}
-        >
-          {resolvedTheme === "dark" ? (
-            <Sun className="size-4 text-foreground" />
-          ) : (
-            <Moon className="size-4 text-foreground" />
-          )}
-        </Button>
+        <ThemeToggle />
 
         {/* Quick Launch QR Button */}
         {onOpenNewSession && (

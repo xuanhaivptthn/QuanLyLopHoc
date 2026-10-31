@@ -5,20 +5,19 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast";
-import { useTheme } from "@/lib/theme";
 import { fetchApi } from "@/lib/api-client";
 import { AuthResponse, User } from "@/types";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Sun, Moon, Eye, EyeOff, Shield } from "lucide-react";
+import { Eye, EyeOff, Shield } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { isAuthenticated, isLoading: isAuthLoading, login } = useAuth();
-  const { resolvedTheme, toggleTheme } = useTheme();
   const toast = useToast();
 
   const redirectUrl = searchParams.get("redirect") || "/";
@@ -75,20 +74,7 @@ function LoginFormInner() {
     <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-background text-foreground relative">
       {/* Theme Toggle Button */}
       <div className="absolute top-4 right-4 z-20">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={toggleTheme}
-          title="Đổi giao diện"
-          aria-label="Đổi giao diện"
-        >
-          {resolvedTheme === "dark" ? (
-            <Sun className="size-4" />
-          ) : (
-            <Moon className="size-4" />
-          )}
-        </Button>
+        <ThemeToggle variant="outline" />
       </div>
 
       {/* Login Card */}
