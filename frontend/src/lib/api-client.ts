@@ -223,3 +223,49 @@ export async function fetchApi<T>(
     throw error;
   }
 }
+
+/**
+ * Downloads a file from an authenticated API endpoint (e.g. CSV reports)
+ */
+export async function downloadFile(endpoint: string, defaultFilename: string): Promise<void> {
+  const token = getStoredToken();
+  const headers: HeadersInit = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: "GET",
+      headers,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Tải tệp thất bại: HTTP ${response.status}`);
+    }
+
+    let filename = defaultFilename;
+    const disposition = response.headers.get("Content-Disposition");
+    if (disposition && disposition.includes("filename=")) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match && match[1]) {
+        filename = match[1];
+      }
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Đã tải xuống ${filename}`, "Tải tệp thành công");
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Không thể tải tệp";
+    toast.error(msg, "Lỗi tải tệp");
+    throw error;
+  }
+}
+

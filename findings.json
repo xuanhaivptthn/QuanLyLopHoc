@@ -1,0 +1,370 @@
+[
+  {
+    "verdict": "confirmed",
+    "fingerprint": "sec-auth-filter-chain-permissive",
+    "title": "Overly broad permitAll on /auth/** in Spring Security filter chain",
+    "description": "Spring Security configuration permitted all requests matching /auth/**, bypassing security filter validation for stateful endpoints such as /auth/me and /auth/switch-organization.",
+    "root_cause": "Wildcard matcher /auth/** was configured with permitAll() instead of specifically allowing only public onboarding endpoints.",
+    "intended_behavior": "Only explicit public endpoints (/auth/login, /auth/register-teacher, /auth/register-center, /auth/accept-invite) should be permitted without authentication.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "backend/src/main/java/com/attendance/common/config/SecurityConfig.java",
+        "line": 76,
+        "scope": "securityFilterChain",
+        "description": "Wildcard matcher /auth/** permits unauthenticated requests through filter chain."
+      },
+      {
+        "kind": "propagation",
+        "file": "backend/src/main/java/com/attendance/auth/controller/AuthController.java",
+        "line": 48,
+        "scope": "getCurrentUser",
+        "description": "Stateful endpoint relies solely on controller null check instead of filter-level authorization."
+      },
+      {
+        "kind": "sink",
+        "file": "backend/src/main/java/com/attendance/auth/service/AuthService.java",
+        "line": 236,
+        "scope": "getCurrentUser",
+        "description": "Principal query is reached with authentication filter bypassed."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "backend/src/main/java/com/attendance/common/config/SecurityConfig.java",
+        "line": 76,
+        "description": "Wildcard permitAll allowed unauthenticated requests to reach stateful endpoints."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "system_configuration",
+        "description": "Public URL matcher used wildcard pattern /auth/** rather than exact public route paths."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Unauthenticated external user sending HTTP requests.",
+      "payloads": [
+        "GET /api/auth/me without Authorization header"
+      ],
+      "instructions": [
+        "Send GET request to /api/auth/me without providing Bearer token.",
+        "Observe that the request bypasses Spring Security filter validation and reaches controller layer."
+      ],
+      "observed_result": "Spring Security filter chain allows request to pass to controller without rejecting at filter boundary."
+    },
+    "remediation": {
+      "strategy": "Constrain permitAll() in SecurityConfig to explicit public endpoints only, and require authentication for all other /auth endpoints."
+    },
+    "severity": {
+      "likelihood": {
+        "score": "medium",
+        "reason": "Endpoints are directly accessible over the network."
+      },
+      "impact": {
+        "score": "medium",
+        "reason": "Bypasses standard filter chain authentication gate, degrading defense-in-depth."
+      },
+      "overall_severity": "medium"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Source code review confirmed wildcard matching behavior directly in SecurityConfig."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "sec-brute-force-missing-rate-limit",
+    "title": "Missing Rate Limiting on Authentication and Roll-Call Check-in Endpoints",
+    "description": "Endpoints /auth/login, /auth/register-*, and /sessions/{id}/check-in lacked rate limiting, allowing automated brute-force attacks against user credentials or roll-call QR tokens.",
+    "root_cause": "No throttling or rate limiting filter was configured before the authentication provider.",
+    "intended_behavior": "Public authentication and token verification routes must restrict the number of attempts allowed per IP within a sliding time window.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "backend/src/main/java/com/attendance/auth/controller/AuthController.java",
+        "line": 24,
+        "scope": "login",
+        "description": "Login endpoint accepts unthrottled POST requests."
+      },
+      {
+        "kind": "propagation",
+        "file": "backend/src/main/java/com/attendance/auth/service/AuthService.java",
+        "line": 57,
+        "scope": "login",
+        "description": "Authentication manager handles unmetered authentication attempts."
+      },
+      {
+        "kind": "sink",
+        "file": "backend/src/main/java/com/attendance/common/security/CustomUserDetailsService.java",
+        "line": 22,
+        "scope": "loadUserByUsername",
+        "description": "Database user lookup and BCrypt verification executed repeatedly without rate throttling."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "backend/src/main/java/com/attendance/auth/controller/AuthController.java",
+        "line": 24,
+        "description": "High-frequency credential submissions allowed without rate limit rejection."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "environmental_dependency",
+        "description": "External ingress or gateway does not apply strict API rate limiting."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Remote adversary attempting automated password guessing or credential stuffing.",
+      "payloads": [
+        "Rapid burst of 100 HTTP POST /api/auth/login attempts per second"
+      ],
+      "instructions": [
+        "Send multiple rapid authentication attempts with invalid credentials.",
+        "Observe application processes each request without HTTP 429 response."
+      ],
+      "observed_result": "Application attempts password verification for every request without throttling."
+    },
+    "remediation": {
+      "strategy": "Implement an in-memory RateLimitingFilter returning HTTP 429 Too Many Requests when limits are exceeded."
+    },
+    "severity": {
+      "likelihood": {
+        "score": "high",
+        "reason": "Automated brute-force tools are freely available and commonly used against public auth APIs."
+      },
+      "impact": {
+        "score": "medium",
+        "reason": "May lead to credential compromise or excessive CPU utilization on password hashing."
+      },
+      "overall_severity": "medium"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Verified that no rate limiting filters were registered in SecurityFilterChain prior to remediation."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "sec-csv-formula-injection",
+    "title": "Risk of CSV Formula Injection in Roster and Attendance Export",
+    "description": "Student names, codes, or remarks beginning with formula trigger characters (=, +, -, @) exported into CSV could execute malicious formulas in spreadsheet applications.",
+    "root_cause": "Raw unescaped strings placed directly into CSV export cells without formula character sanitization.",
+    "intended_behavior": "Cells starting with formula characters must be prefixed with a single quote to force plain text interpretation.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "backend/src/main/java/com/attendance/student/entity/Student.java",
+        "line": 24,
+        "scope": "studentCode",
+        "description": "User-controlled student code and name fields stored in database."
+      },
+      {
+        "kind": "propagation",
+        "file": "backend/src/main/java/com/attendance/attendance/service/AttendanceExportService.java",
+        "line": 140,
+        "scope": "exportClassroomAttendanceReportCsv",
+        "description": "Student data transformed into CSV rows."
+      },
+      {
+        "kind": "sink",
+        "file": "backend/src/main/java/com/attendance/common/util/CsvSanitizer.java",
+        "line": 21,
+        "scope": "sanitizeCell",
+        "description": "Cell values must be sanitized to neutralize formula prefix triggers."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "backend/src/main/java/com/attendance/student/dto/CreateStudentRequest.java",
+        "line": 15,
+        "description": "Student codes can contain characters that trigger formula execution in spreadsheet software."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "user_interaction",
+        "description": "A teacher or administrator downloads and opens the exported CSV file in spreadsheet software."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Enrolled student or rogue user crafting their studentCode or name.",
+      "payloads": [
+        "=cmd|' /C calc'!A0",
+        "+100*100"
+      ],
+      "instructions": [
+        "Register student with code starting with formula character.",
+        "Export classroom attendance report to CSV.",
+        "Open generated CSV in spreadsheet application."
+      ],
+      "observed_result": "Unsanitized cell interpreted as active executable formula."
+    },
+    "remediation": {
+      "strategy": "Apply CsvSanitizer to prepend single quote to formula prefix characters and properly quote cells."
+    },
+    "severity": {
+      "likelihood": {
+        "score": "medium",
+        "reason": "Requires user interaction opening the exported CSV in vulnerable desktop spreadsheet programs."
+      },
+      "impact": {
+        "score": "medium",
+        "reason": "Could trigger unintended macro or formula execution on client workstations."
+      },
+      "overall_severity": "medium"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Demonstrated via unit and integration tests with formula payloads."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "sec-hardcoded-default-jwt-secret",
+    "title": "Hardcoded default JWT secret in configuration without environment override",
+    "description": "The default JWT secret was hardcoded in application.yml without ${JWT_SECRET:...} environment variable syntax, risking token forgery if deployed to production without configuration change.",
+    "root_cause": "Missing environment variable substitution on the jwt.secret property.",
+    "intended_behavior": "Secret key must be externalized to environment variables and overridden in production environments.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "backend/src/main/resources/application.yml",
+        "line": 21,
+        "scope": "jwt.secret",
+        "description": "Hardcoded secret string defined in repository configuration."
+      },
+      {
+        "kind": "propagation",
+        "file": "backend/src/main/java/com/attendance/common/security/JwtTokenProvider.java",
+        "line": 23,
+        "scope": "JwtTokenProvider",
+        "description": "Constructor binds static property without requiring external secret injection."
+      },
+      {
+        "kind": "sink",
+        "file": "backend/src/main/java/com/attendance/common/security/JwtTokenProvider.java",
+        "line": 46,
+        "scope": "generateToken",
+        "description": "Cryptographic HMAC signature generated using repository-tracked key."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "backend/src/main/resources/application.yml",
+        "line": 21,
+        "description": "Static hexadecimal secret embedded directly in version-controlled YAML."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "system_configuration",
+        "description": "Application deployed using default application.yml without external environment overrides."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "External adversary inspecting public source repository.",
+      "payloads": [
+        "Forged JWT token signed with hardcoded secret 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970"
+      ],
+      "instructions": [
+        "Extract secret from source repository.",
+        "Sign arbitrary JWT claims with role SUPER_ADMIN.",
+        "Send requests with forged Authorization header."
+      ],
+      "observed_result": "Backend verifies forged token successfully using the known default secret."
+    },
+    "remediation": {
+      "strategy": "Externalize jwt.secret to ${JWT_SECRET:...} and enforce custom secrets in production profile."
+    },
+    "severity": {
+      "likelihood": {
+        "score": "medium",
+        "reason": "Default secrets are easily discovered in open or leaked repositories."
+      },
+      "impact": {
+        "score": "high",
+        "reason": "Attacker can forge valid authentication tokens for any user or administrator."
+      },
+      "overall_severity": "high"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Static secret was clearly hardcoded in version control."
+    }
+  },
+  {
+    "verdict": "confirmed",
+    "fingerprint": "sec-missing-security-headers",
+    "title": "Missing Defense-in-Depth HTTP Security Headers",
+    "description": "Responses lacked essential security headers (X-Content-Type-Options: nosniff, X-Frame-Options: DENY, Strict-Transport-Security), leaving client browsers vulnerable to MIME-sniffing and clickjacking.",
+    "root_cause": "Spring Security HTTP headers were not explicitly customized in SecurityFilterChain.",
+    "intended_behavior": "All responses should include standard protective HTTP headers.",
+    "trace": [
+      {
+        "kind": "entrypoint",
+        "file": "backend/src/main/java/com/attendance/common/config/SecurityConfig.java",
+        "line": 29,
+        "scope": "securityFilterChain",
+        "description": "HTTP security filter chain configuration omitted custom header directives."
+      },
+      {
+        "kind": "propagation",
+        "file": "backend/src/main/java/com/attendance/common/config/SecurityConfig.java",
+        "line": 33,
+        "scope": "securityFilterChain",
+        "description": "Default filter chain builds without explicit framing or MIME constraints."
+      },
+      {
+        "kind": "sink",
+        "file": "backend/src/main/java/com/attendance/common/config/SecurityConfig.java",
+        "line": 84,
+        "scope": "securityFilterChain",
+        "description": "HTTP response headers emitted to client without defensive security options."
+      }
+    ],
+    "evidence": [
+      {
+        "file": "backend/src/main/java/com/attendance/common/config/SecurityConfig.java",
+        "line": 33,
+        "description": "SecurityFilterChain lacked explicit headers configuration."
+      }
+    ],
+    "conditions": [
+      {
+        "kind": "environmental_dependency",
+        "description": "Upstream reverse proxy or ingress does not inject missing HTTP security headers."
+      }
+    ],
+    "execution": {
+      "attacker_perspective": "Web adversary embedding the application in malicious iframes or exploiting MIME sniffing.",
+      "payloads": [
+        "<iframe src=\"http://target:8080/api/docs\"></iframe>"
+      ],
+      "instructions": [
+        "Embed application endpoint in an external frame.",
+        "Observe absence of X-Frame-Options or frame-ancestors restrictions."
+      ],
+      "observed_result": "Browser renders content inside external framing document."
+    },
+    "remediation": {
+      "strategy": "Configure contentTypeOptions, frameOptions, and HSTS headers in Spring Security."
+    },
+    "severity": {
+      "likelihood": {
+        "score": "low",
+        "reason": "Requires cross-site framing or malicious content sniffing vectors."
+      },
+      "impact": {
+        "score": "low",
+        "reason": "Secondary defense-in-depth weakness."
+      },
+      "overall_severity": "low"
+    },
+    "confidence": {
+      "score": "high",
+      "reason": "Headers were missing in initial HTTP response traces and verified in integration tests."
+    }
+  }
+]

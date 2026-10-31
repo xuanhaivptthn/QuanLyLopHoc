@@ -261,3 +261,29 @@ export interface BulkImportToClassroomResponse {
   errors: BulkErrorItem[];
 }
 
+export interface StudentAttendanceStatDto {
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  totalSessions: number;
+  presentCount: number;
+  lateCount: number;
+  absentCount: number;
+  excusedCount: number;
+  attendanceRate: number;
+}
+
+export interface ClassroomAttendanceSummaryResponse {
+  classroomId: string;
+  classroomCode: string;
+  classroomName: string;
+  semester: string;
+  totalSessions: number;
+  totalEnrolledStudents: number;
+  overallAttendanceRate: number;
+  studentStats: StudentAttendanceStatDto[];
+}
+
+

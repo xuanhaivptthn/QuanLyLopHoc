@@ -18,5 +18,24 @@ springdoc:
     tags-sorter: alpha
 
 jwt:
-  secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration-ms: 86400000 # 24 hours
+  secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000} # 24 hours
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: when_authorized
+      probes:
+        enabled: true
+
+app:
+  security:
+    rate-limit:
+      enabled: ${RATE_LIMIT_ENABLED:true}
+      auth-limit-per-minute: ${RATE_LIMIT_AUTH:15}
+      checkin-limit-per-minute: ${RATE_LIMIT_CHECKIN:30}
+

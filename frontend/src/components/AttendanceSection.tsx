@@ -8,7 +8,7 @@ import {
   AttendanceStatus,
   QrTokenResponse,
 } from "@/types";
-import { fetchApi } from "@/lib/api-client";
+import { fetchApi, downloadFile } from "@/lib/api-client";
 import { useToast } from "@/lib/toast";
 import { QrCodeView } from "@/components/QrCodeView";
 import { Card } from "@/components/ui/card";
@@ -32,6 +32,7 @@ import {
   Copy,
   Smartphone,
   Calendar,
+  Download,
 } from "lucide-react";
 
 interface AttendanceSectionProps {
@@ -242,6 +243,19 @@ export function AttendanceSection({
     }
   };
 
+  // Export individual session attendance CSV
+  const handleExportSessionCsv = async () => {
+    if (!activeSession) return;
+    try {
+      await downloadFile(
+        `/sessions/${activeSession.id}/attendance/export`,
+        `diem_danh_${activeSession.classroomCode}_${activeSession.sessionDate}.csv`
+      );
+    } catch {
+      // Handled in downloadFile
+    }
+  };
+
   // Student Check-In Simulator (POST /sessions/{id}/check-in)
   const handleStudentCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -439,24 +453,37 @@ export function AttendanceSection({
           {/* Session Overview Stats Banner */}
           <Card className="p-4 shadow-xs">
             <div className="flex flex-col gap-3">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-base font-bold text-foreground">
-                    {activeSession.classroomCode} • Ca ngày {activeSession.sessionDate}
-                  </h2>
-                  <Badge variant="outline" className="font-mono text-xs">
-                    {activeSession.startTime.slice(0, 5)} - {activeSession.endTime.slice(0, 5)}
-                  </Badge>
-                  <Badge
-                    variant={activeSession.status === "ACTIVE" ? "default" : "secondary"}
-                    className="font-mono text-[10px] uppercase"
-                  >
-                    {activeSession.status}
-                  </Badge>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="text-base font-bold text-foreground">
+                      {activeSession.classroomCode} • Ca ngày {activeSession.sessionDate}
+                    </h2>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {activeSession.startTime.slice(0, 5)} - {activeSession.endTime.slice(0, 5)}
+                    </Badge>
+                    <Badge
+                      variant={activeSession.status === "ACTIVE" ? "default" : "secondary"}
+                      className="font-mono text-[10px] uppercase"
+                    >
+                      {activeSession.status}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Lớp: {activeSession.classroomName} • Sĩ số danh sách: {totalInSession} sinh viên
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Lớp: {activeSession.classroomName} • Sĩ số danh sách: {totalInSession} sinh viên
-                </p>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleExportSessionCsv}
+                  className="h-8 text-xs gap-1.5 shrink-0 self-start sm:self-auto cursor-pointer"
+                >
+                  <Download className="size-3.5" />
+                  Xuất CSV Điểm Danh
+                </Button>
               </div>
 
               {/* Counters - Moved down & minified into compact pills */}

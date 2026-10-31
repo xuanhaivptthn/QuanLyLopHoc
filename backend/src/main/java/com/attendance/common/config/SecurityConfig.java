@@ -23,6 +23,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final com.attendance.common.security.RateLimitingFilter rateLimitingFilter;
     private final org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource;
 
     @Bean
@@ -31,6 +32,13 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .headers(headers -> headers
+                        .contentTypeOptions(org.springframework.security.config.Customizer.withDefaults())
+                        .frameOptions(org.springframework.security.config.annotation.web.configurers.HeadersConfigurer.FrameOptionsConfig::deny)
+                        .httpStrictTransportSecurity(hsts -> hsts
+                                .includeSubDomains(true)
+                                .maxAgeInSeconds(31536000))
+                )
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
@@ -71,14 +79,27 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        // Public authentication & onboarding endpoints
+                        // Public actuator probes
                         .requestMatchers(
-                                "/auth/**",
-                                "/api/auth/**"
+                                "/actuator/health",
+                                "/actuator/health/**",
+                                "/actuator/info"
+                        ).permitAll()
+                        // Public authentication & onboarding endpoints only
+                        .requestMatchers(
+                                "/auth/login",
+                                "/auth/register-teacher",
+                                "/auth/register-center",
+                                "/auth/accept-invite",
+                                "/api/auth/login",
+                                "/api/auth/register-teacher",
+                                "/api/auth/register-center",
+                                "/api/auth/accept-invite"
                         ).permitAll()
                         // All other APIs require authentication
                         .anyRequest().authenticated()
                 )
+                .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

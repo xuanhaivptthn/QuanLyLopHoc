@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useDeferredValue, useRef } from "react";
 import { Classroom, Enrollment, Student, AttendanceSession, BulkEnrollmentResponse } from "@/types";
-import { fetchApi } from "@/lib/api-client";
+import { fetchApi, downloadFile } from "@/lib/api-client";
 import { useToast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth-context";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import {
   Trash2,
   UserPlus,
   Upload,
+  Download,
   ArrowLeft,
   Clock,
   CheckCircle2,
@@ -260,6 +261,19 @@ export function ClassroomsSection({
     }
   };
 
+  // Export classroom attendance report CSV
+  const handleExportClassroomReport = async () => {
+    if (!activeClassroom) return;
+    try {
+      await downloadFile(
+        `/classrooms/${activeClassroom.id}/attendance/export`,
+        `bao_cao_diem_danh_${activeClassroom.code}.csv`
+      );
+    } catch {
+      // Handled in downloadFile
+    }
+  };
+
   // Filtered classrooms
   const filteredClassrooms = classrooms.filter((c) => {
     const matchesSearch =
@@ -343,6 +357,17 @@ export function ClassroomsSection({
               >
                 <UserPlus className="size-3.5" />
                 Ghi danh sinh viên
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleExportClassroomReport}
+                className="gap-1.5 text-xs cursor-pointer"
+              >
+                <Download className="size-3.5" />
+                Xuất báo cáo (CSV)
               </Button>
 
               <Button

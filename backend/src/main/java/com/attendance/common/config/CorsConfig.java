@@ -29,13 +29,19 @@ public class CorsConfig {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        config.setAllowedOriginPatterns(patterns);
 
         List<String> origins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .toList();
-        config.setAllowedOrigins(origins);
+
+        if (!patterns.isEmpty()) {
+            config.setAllowedOriginPatterns(patterns);
+        } else if (!origins.isEmpty()) {
+            config.setAllowedOrigins(origins);
+        } else {
+            config.setAllowedOriginPatterns(List.of("http://localhost:3000"));
+        }
 
         config.setAllowedHeaders(List.of("*"));
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
