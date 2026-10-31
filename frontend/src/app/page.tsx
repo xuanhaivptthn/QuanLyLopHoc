@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect, useTransition, useCallback } from "react";
-import { Classroom, Student, AttendanceSession, User } from "@/types";
-import { fetchApi, getStoredToken, setStoredToken, subscribeToAuth } from "@/lib/api-client";
-import { ToastProvider, useToast } from "@/lib/toast";
-import { ThemeProvider } from "@/lib/theme";
+import { useRouter } from "next/navigation";
+import { Classroom, Student, AttendanceSession } from "@/types";
+import { fetchApi } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
+import { AuthGuard } from "@/components/AuthGuard";
 import { Sidebar, NavItem } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { DashboardSection } from "@/components/DashboardSection";
@@ -12,15 +13,14 @@ import { ClassroomsSection } from "@/components/ClassroomsSection";
 import { AttendanceSection } from "@/components/AttendanceSection";
 import { StudentsSection } from "@/components/StudentsSection";
 import { OrganizationSection } from "@/components/OrganizationSection";
-import { AuthSection } from "@/components/AuthSection";
 import { ApiConsole } from "@/components/ApiConsole";
 
 function AppContent() {
-  const toast = useToast();
+  const router = useRouter();
+  const { currentUser, logout, isAuthenticated } = useAuth();
   const [isPending, startTransition] = useTransition();
 
   const [activeTab, setActiveTab] = useState<NavItem>("dashboard");
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
@@ -29,23 +29,13 @@ function AppContent() {
   // UI state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showCreateClassModal, setShowCreateClassModal] = useState(false);
   const [showCreateStudentModal, setShowCreateStudentModal] = useState(false);
 
-  // Load user profile & core data
+  // Load classrooms & students when authenticated
   const loadInitialData = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
-      const token = getStoredToken();
-      if (token) {
-        try {
-          const user = await fetchApi<User>("/auth/me");
-          setCurrentUser(user);
-        } catch {
-          setCurrentUser(null);
-        }
-      }
-
       // Fetch classrooms & students for dashboard counters
       const [clsData, stData] = await Promise.allSettled([
         fetchApi<Classroom[]>("/classrooms"),
@@ -75,28 +65,16 @@ function AppContent() {
     } catch {
       // Ignored
     }
-  }, [selectedClassroom]);
+  }, [isAuthenticated, selectedClassroom]);
 
   useEffect(() => {
-    loadInitialData();
-
-    const unsubscribe = subscribeToAuth((token) => {
-      if (!token) {
-        setCurrentUser(null);
-      } else {
-        fetchApi<User>("/auth/me")
-          .then((u) => setCurrentUser(u))
-          .catch(() => setCurrentUser(null));
-      }
-    });
-
-    return () => unsubscribe();
-  }, [loadInitialData]);
+    if (isAuthenticated) {
+      loadInitialData();
+    }
+  }, [isAuthenticated, loadInitialData]);
 
   const handleLogout = () => {
-    setStoredToken(null);
-    setCurrentUser(null);
-    toast.info("Đã đăng xuất khỏi phiên làm việc", "Đăng xuất");
+    logout();
   };
 
   const handleTabChange = (tab: NavItem) => {
@@ -130,7 +108,7 @@ function AppContent() {
           onSelectTab={handleTabChange}
           currentUser={currentUser}
           onLogout={handleLogout}
-          onOpenLoginModal={() => setShowLoginModal(true)}
+          onOpenLoginModal={() => router.push("/login")}
           isCollapsed={isSidebarCollapsed}
           onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           stats={{
@@ -155,8 +133,8 @@ function AppContent() {
               currentUser={currentUser}
               onLogout={handleLogout}
               onOpenLoginModal={() => {
-                setShowLoginModal(true);
                 setIsMobileMenuOpen(false);
+                router.push("/login");
               }}
               isCollapsed={false}
               onToggleCollapse={() => setIsMobileMenuOpen(false)}
@@ -237,24 +215,6 @@ function AppContent() {
         </main>
       </div>
 
-      {/* Auth Modal Overlay */}
-      {showLoginModal && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4"
-        >
-          <AuthSection
-            currentUser={currentUser}
-            onUserChange={(u) => {
-              setCurrentUser(u);
-              setShowLoginModal(false);
-              loadInitialData();
-            }}
-            onClose={() => setShowLoginModal(false)}
-          />
-        </div>
-      )}
 
       {/* Dockable Developer API Inspector */}
       <ApiConsole />
@@ -264,10 +224,8 @@ function AppContent() {
 
 export default function HomePage() {
   return (
-    <ThemeProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </ThemeProvider>
+    <AuthGuard>
+      <AppContent />
+    </AuthGuard>
   );
 }

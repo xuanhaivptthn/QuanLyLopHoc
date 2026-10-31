@@ -132,6 +132,13 @@ export async function fetchApi<T>(
 
       if (response.status === 401 && endpoint !== "/auth/login") {
         setStoredToken(null);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("auth:unauthorized", {
+              detail: { reason: "session_expired", endpoint },
+            })
+          );
+        }
       }
 
       throw new Error(errMsg);
