@@ -1,4 +1,10 @@
-export type Role = "ADMIN" | "TEACHER" | "STUDENT";
+export type Role = "SUPER_ADMIN" | "CENTER_ADMIN" | "TEACHER" | "STUDENT";
+
+export type OrganizationRole = "ADMIN" | "TEACHER" | "TA";
+
+export type MemberStatus = "INVITED" | "ACTIVE" | "SUSPENDED";
+
+export type InvitationStatus = "PENDING" | "ACCEPTED" | "EXPIRED" | "REVOKED";
 
 export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
 
@@ -9,6 +15,49 @@ export interface User {
   email: string;
   fullName: string;
   role: Role;
+  activeOrganizationId?: string | null;
+  activeOrganizationName?: string | null;
+}
+
+export interface AuthResponse {
+  token: string;
+  tokenType: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  role: Role;
+  activeOrganizationId?: string | null;
+  activeOrganizationName?: string | null;
+}
+
+export interface Organization {
+  id: string;
+  code: string;
+  name: string;
+  logoUrl?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  createdAt: string;
+}
+
+export interface OrganizationMember {
+  id: string;
+  userId: string;
+  email: string;
+  fullName: string;
+  role: OrganizationRole;
+  status: MemberStatus;
+  joinedAt: string;
+}
+
+export interface OrganizationInvitation {
+  id: string;
+  email: string;
+  role: OrganizationRole;
+  token: string;
+  expiresAt: string;
+  status: InvitationStatus;
+  createdAt: string;
 }
 
 export interface Student {
@@ -18,6 +67,10 @@ export interface Student {
   email: string;
   phone?: string;
   avatarUrl?: string;
+  organizationId?: string | null;
+  ownerTeacherId?: string | null;
+  userId?: string | null;
+  createdAt?: string;
 }
 
 export interface Classroom {
@@ -27,18 +80,40 @@ export interface Classroom {
   semester: string;
   teacherId: string;
   teacherName?: string;
+  organizationId?: string | null;
+  organizationName?: string | null;
   totalStudents?: number;
+  createdAt?: string;
+}
+
+export interface Enrollment {
+  enrollmentId: string;
+  classroomId: string;
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  enrolledAt: string;
 }
 
 export interface AttendanceSession {
   id: string;
   classroomId: string;
+  classroomCode: string;
+  classroomName: string;
   sessionDate: string;
   startTime: string;
   endTime: string;
+  status: SessionStatus;
   qrToken?: string;
   qrExpiresAt?: string;
-  status: SessionStatus;
+  totalStudents: number;
+  presentCount: number;
+  lateCount: number;
+  absentCount: number;
+  excusedCount: number;
+  createdAt: string;
 }
 
 export interface AttendanceRecord {
@@ -50,4 +125,12 @@ export interface AttendanceRecord {
   status: AttendanceStatus;
   checkInTime?: string;
   remarks?: string;
+  updatedAt?: string;
+}
+
+export interface QrTokenResponse {
+  sessionId: string;
+  qrToken: string;
+  expiresAt: string;
+  validitySeconds: number;
 }
