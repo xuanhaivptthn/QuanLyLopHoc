@@ -57,17 +57,22 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
     }));
   }, []);
 
+  const selectedClassroomIdRef = useRef(selectedClassroomId);
+  useEffect(() => {
+    selectedClassroomIdRef.current = selectedClassroomId;
+  }, [selectedClassroomId]);
+
   const loadClassrooms = useCallback(async () => {
     try {
       const data = await fetchApi<Classroom[]>("/classrooms");
       setClassrooms(data || []);
-      if (!selectedClassroomId && data && data.length > 0) {
+      if (!selectedClassroomIdRef.current && data && data.length > 0) {
         setSelectedClassroomId(data[0].id);
       }
     } catch {
       // Ignored
     }
-  }, [selectedClassroomId]);
+  }, []);
 
   const loadSessions = useCallback(async (classroomId: string) => {
     if (!classroomId) return;

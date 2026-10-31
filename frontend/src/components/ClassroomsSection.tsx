@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useDeferredValue } from "react";
+import React, { useState, useEffect, useCallback, useDeferredValue, useRef } from "react";
 import { Classroom, Enrollment, Student } from "@/types";
 import { fetchApi } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
@@ -47,27 +47,45 @@ export function ClassroomsSection({
     teacherId: "",
   });
 
+  // Stable refs for callbacks and selectedClassroomId to prevent re-fetch cascade loops
+  const onSelectClassroomRef = useRef(onSelectClassroom);
+  useEffect(() => {
+    onSelectClassroomRef.current = onSelectClassroom;
+  }, [onSelectClassroom]);
+
+  const selectedClassroomIdRef = useRef(selectedClassroomId);
+  useEffect(() => {
+    selectedClassroomIdRef.current = selectedClassroomId;
+  }, [selectedClassroomId]);
+
   useEffect(() => {
     if (showCreateModalDirectly) {
       setShowCreateModal(true);
     }
   }, [showCreateModalDirectly]);
 
+  // Load classrooms: only runs on mount or when active organization changes
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const [clsData, stData] = await Promise.all([
-        fetchApi<Classroom[]>("/classrooms"),
-        fetchApi<Student[]>("/students"),
-      ]);
-      setClassrooms(clsData || []);
-      setAllStudents(stData || []);
+      const clsData = await fetchApi<Classroom[]>("/classrooms");
+      const list = clsData || [];
+      setClassrooms(list);
 
-      if (clsData && clsData.length > 0) {
-        const found = selectedClassroomId ? clsData.find((c) => c.id === selectedClassroomId) : null;
-        const initial = found || clsData[0];
-        setActiveClassroom(initial);
-        if (onSelectClassroom) onSelectClassroom(initial);
+      if (list.length > 0) {
+        setActiveClassroom((prev) => {
+          // If previous selection is still valid in list, keep it
+          if (prev && list.some((c) => c.id === prev.id)) {
+            return list.find((c) => c.id === prev.id) || prev;
+          }
+          const targetId = selectedClassroomIdRef.current;
+          const found = targetId ? list.find((c) => c.id === targetId) : null;
+          const initial = found || list[0];
+          if (onSelectClassroomRef.current && initial.id !== targetId) {
+            onSelectClassroomRef.current(initial);
+          }
+          return initial;
+        });
       } else {
         setActiveClassroom(null);
       }
@@ -76,7 +94,30 @@ export function ClassroomsSection({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedClassroomId, onSelectClassroom, toast, currentUser?.activeOrganizationId]);
+  }, [currentUser?.activeOrganizationId, toast]);
+
+  // Sync activeClassroom when selectedClassroomId prop changes from outside without re-fetching
+  useEffect(() => {
+    if (selectedClassroomId && classrooms.length > 0) {
+      if (activeClassroom?.id !== selectedClassroomId) {
+        const match = classrooms.find((c) => c.id === selectedClassroomId);
+        if (match) {
+          setActiveClassroom(match);
+        }
+      }
+    }
+  }, [selectedClassroomId, classrooms, activeClassroom?.id]);
+
+  // Lazy-load students ONLY when enroll student modal is opened
+  useEffect(() => {
+    if (showEnrollModal && allStudents.length === 0) {
+      fetchApi<Student[]>("/students")
+        .then((data) => setAllStudents(data || []))
+        .catch((err: unknown) => {
+          toast.error(err instanceof Error ? err.message : "Lỗi khi tải danh sách sinh viên", "Lỗi");
+        });
+    }
+  }, [showEnrollModal, allStudents.length, toast]);
 
   const loadEnrollments = useCallback(async (clsId: string) => {
     try {
@@ -119,6 +160,9 @@ export function ClassroomsSection({
       setNewClass({ code: "", name: "", semester: "2026-1", teacherId: "" });
       await loadData();
       setActiveClassroom(created);
+      if (onSelectClassroomRef.current) {
+        onSelectClassroomRef.current(created);
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Không thể tạo lớp học", "Lỗi tạo lớp");
     } finally {
@@ -140,7 +184,10 @@ export function ClassroomsSection({
       setShowEnrollModal(false);
       setEnrollStudentId("");
       loadEnrollments(activeClassroom.id);
-      loadData();
+      // Optimistically update student count in active classroom without re-hitting /classrooms
+      setClassrooms((prev) =>
+        prev.map((c) => (c.id === activeClassroom.id ? { ...c, totalStudents: (c.totalStudents || 0) + 1 } : c))
+      );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Ghi danh thất bại (sinh viên có thể đã tồn tại)", "Lỗi");
     } finally {
@@ -158,7 +205,14 @@ export function ClassroomsSection({
       });
       toast.info(`Đã rút sinh viên ${studentName} khỏi lớp`, "Hủy ghi danh");
       loadEnrollments(activeClassroom.id);
-      loadData();
+      // Optimistically update student count in active classroom without re-hitting /classrooms
+      setClassrooms((prev) =>
+        prev.map((c) =>
+          c.id === activeClassroom.id
+            ? { ...c, totalStudents: Math.max(0, (c.totalStudents || 1) - 1) }
+            : c
+        )
+      );
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Lỗi khi xóa sinh viên", "Lỗi");
     }
@@ -249,7 +303,7 @@ export function ClassroomsSection({
                   key={cls.id}
                   onClick={() => {
                     setActiveClassroom(cls);
-                    if (onSelectClassroom) onSelectClassroom(cls);
+                    if (onSelectClassroomRef.current) onSelectClassroomRef.current(cls);
                   }}
                   className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
                     isSelected

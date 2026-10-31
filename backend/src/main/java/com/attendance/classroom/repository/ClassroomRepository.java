@@ -19,8 +19,8 @@ public interface ClassroomRepository extends JpaRepository<Classroom, UUID> {
     @Query("SELECT c FROM Classroom c JOIN FETCH c.teacher LEFT JOIN FETCH c.organization WHERE c.teacher.id = :teacherId AND c.organization IS NULL")
     List<Classroom> findAllSoloByTeacherIdWithDetails(@Param("teacherId") UUID teacherId);
 
-    @Query("SELECT c FROM Classroom c JOIN FETCH c.teacher LEFT JOIN FETCH c.organization WHERE c.teacher.id = :teacherId")
-    List<Classroom> findAllByTeacherIdWithDetails(@Param("teacherId") UUID teacherId);
+    @Query("SELECT c FROM Classroom c JOIN FETCH c.teacher LEFT JOIN FETCH c.organization WHERE c.organization.id = :orgId AND c.teacher.id = :teacherId")
+    List<Classroom> findAllByOrganizationIdAndTeacherIdWithDetails(@Param("orgId") UUID orgId, @Param("teacherId") UUID teacherId);
 
     @Query("SELECT c FROM Classroom c JOIN FETCH c.teacher LEFT JOIN FETCH c.organization WHERE c.id = :id")
     Optional<Classroom> findByIdWithDetails(@Param("id") UUID id);

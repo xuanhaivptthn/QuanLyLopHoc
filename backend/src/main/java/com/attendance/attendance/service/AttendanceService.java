@@ -92,8 +92,23 @@ public class AttendanceService {
 
         assertTeacherOrAdminAccess(principal, classroom);
 
-        return sessionRepository.findAllByClassroomIdOrderByDateDesc(classroomId).stream()
-                .map(this::mapToSessionResponse)
+        List<AttendanceSession> sessions = sessionRepository.findAllByClassroomIdOrderByDateDesc(classroomId);
+        if (sessions.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> sessionIds = sessions.stream().map(AttendanceSession::getId).toList();
+        Map<UUID, Map<AttendanceStatus, Long>> countsBySession = new java.util.HashMap<>();
+        for (Object[] row : recordRepository.countRecordsBySessionIdsAndStatus(sessionIds)) {
+            UUID sessId = (UUID) row[0];
+            AttendanceStatus status = (AttendanceStatus) row[1];
+            long count = ((Number) row[2]).longValue();
+            countsBySession.computeIfAbsent(sessId, k -> new java.util.EnumMap<>(AttendanceStatus.class))
+                    .put(status, count);
+        }
+
+        return sessions.stream()
+                .map(s -> mapToSessionResponseWithCounts(s, countsBySession.getOrDefault(s.getId(), java.util.Collections.emptyMap())))
                 .toList();
     }
 
@@ -237,6 +252,33 @@ public class AttendanceService {
         long late = recordRepository.countBySessionIdAndStatus(session.getId(), AttendanceStatus.LATE);
         long absent = recordRepository.countBySessionIdAndStatus(session.getId(), AttendanceStatus.ABSENT);
         long excused = recordRepository.countBySessionIdAndStatus(session.getId(), AttendanceStatus.EXCUSED);
+        long total = present + late + absent + excused;
+
+        return SessionResponse.builder()
+                .id(session.getId())
+                .classroomId(session.getClassroom().getId())
+                .classroomCode(session.getClassroom().getCode())
+                .classroomName(session.getClassroom().getName())
+                .sessionDate(session.getSessionDate())
+                .startTime(session.getStartTime())
+                .endTime(session.getEndTime())
+                .status(session.getStatus())
+                .qrToken(session.getQrToken())
+                .qrExpiresAt(session.getQrExpiresAt())
+                .totalStudents(total)
+                .presentCount(present)
+                .lateCount(late)
+                .absentCount(absent)
+                .excusedCount(excused)
+                .createdAt(session.getCreatedAt())
+                .build();
+    }
+
+    private SessionResponse mapToSessionResponseWithCounts(AttendanceSession session, Map<AttendanceStatus, Long> counts) {
+        long present = counts.getOrDefault(AttendanceStatus.PRESENT, 0L);
+        long late = counts.getOrDefault(AttendanceStatus.LATE, 0L);
+        long absent = counts.getOrDefault(AttendanceStatus.ABSENT, 0L);
+        long excused = counts.getOrDefault(AttendanceStatus.EXCUSED, 0L);
         long total = present + late + absent + excused;
 
         return SessionResponse.builder()

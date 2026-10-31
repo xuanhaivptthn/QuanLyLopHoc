@@ -25,7 +25,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -98,18 +100,25 @@ public class ClassroomService {
         if (principal.getRole() == Role.CENTER_ADMIN && principal.getActiveOrganizationId() != null) {
             classrooms = classroomRepository.findAllByOrganizationIdWithDetails(principal.getActiveOrganizationId());
         } else if (principal.getActiveOrganizationId() != null) {
-            classrooms = classroomRepository.findAllByOrganizationIdWithDetails(principal.getActiveOrganizationId()).stream()
-                    .filter(c -> c.getTeacher().getId().equals(principal.getId()))
-                    .toList();
+            classrooms = classroomRepository.findAllByOrganizationIdAndTeacherIdWithDetails(
+                    principal.getActiveOrganizationId(), principal.getId());
         } else {
             classrooms = classroomRepository.findAllSoloByTeacherIdWithDetails(principal.getId());
         }
 
+        if (classrooms.isEmpty()) {
+            return List.of();
+        }
+
+        List<UUID> classroomIds = classrooms.stream().map(Classroom::getId).toList();
+        Map<UUID, Long> countMap = enrollmentRepository.countEnrollmentsByClassroomIds(classroomIds).stream()
+                .collect(Collectors.toMap(
+                        row -> (UUID) row[0],
+                        row -> ((Number) row[1]).longValue()
+                ));
+
         return classrooms.stream()
-                .map(c -> {
-                    long total = enrollmentRepository.countByClassroomId(c.getId());
-                    return mapToResponse(c, total);
-                })
+                .map(c -> mapToResponse(c, countMap.getOrDefault(c.getId(), 0L)))
                 .toList();
     }
 

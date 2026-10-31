@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,6 +25,9 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, UUID> {
     boolean existsByClassroomIdAndStudentId(UUID classroomId, UUID studentId);
 
     long countByClassroomId(UUID classroomId);
+
+    @Query("SELECT e.classroom.id, COUNT(e.id) FROM Enrollment e WHERE e.classroom.id IN :classroomIds GROUP BY e.classroom.id")
+    List<Object[]> countEnrollmentsByClassroomIds(@Param("classroomIds") Collection<UUID> classroomIds);
 
     void deleteByClassroomIdAndStudentId(UUID classroomId, UUID studentId);
 }

@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,4 +26,7 @@ public interface AttendanceRecordRepository extends JpaRepository<AttendanceReco
     boolean existsBySessionIdAndStudentId(UUID sessionId, UUID studentId);
 
     long countBySessionIdAndStatus(UUID sessionId, AttendanceStatus status);
+
+    @Query("SELECT r.session.id, r.status, COUNT(r.id) FROM AttendanceRecord r WHERE r.session.id IN :sessionIds GROUP BY r.session.id, r.status")
+    List<Object[]> countRecordsBySessionIdsAndStatus(@Param("sessionIds") Collection<UUID> sessionIds);
 }

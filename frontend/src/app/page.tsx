@@ -43,14 +43,22 @@ function AppContent() {
       ]);
 
       if (clsData.status === "fulfilled" && clsData.value) {
-        setClassrooms(clsData.value);
-        const newSelected = clsData.value.length > 0 ? clsData.value[0] : null;
-        setSelectedClassroom(newSelected);
+        const fetchedClassrooms = clsData.value;
+        setClassrooms(fetchedClassrooms);
+        let currentTarget: Classroom | null = null;
+        setSelectedClassroom((prev) => {
+          if (prev && fetchedClassrooms.some((c) => c.id === prev.id)) {
+            currentTarget = fetchedClassrooms.find((c) => c.id === prev.id) || prev;
+            return currentTarget;
+          }
+          currentTarget = fetchedClassrooms.length > 0 ? fetchedClassrooms[0] : null;
+          return currentTarget;
+        });
 
         // Fetch sessions for first classroom
-        if (newSelected) {
+        if (currentTarget) {
           try {
-            const sess = await fetchApi<AttendanceSession[]>(`/classrooms/${newSelected.id}/sessions`);
+            const sess = await fetchApi<AttendanceSession[]>(`/classrooms/${(currentTarget as Classroom).id}/sessions`);
             setSessions(sess || []);
           } catch {
             setSessions([]);
@@ -83,6 +91,10 @@ function AppContent() {
   const handleLogout = () => {
     logout();
   };
+
+  const handleSelectClassroom = useCallback((cls: Classroom) => {
+    setSelectedClassroom((prev) => (prev?.id === cls?.id ? prev : cls));
+  }, []);
 
   const handleTabChange = (tab: NavItem) => {
     startTransition(() => {
@@ -181,7 +193,7 @@ function AppContent() {
               students={students}
               sessions={sessions}
               onNavigateTab={handleTabChange}
-              onSelectClassroom={(cls) => setSelectedClassroom(cls)}
+              onSelectClassroom={handleSelectClassroom}
               onOpenNewClassModal={() => {
                 setShowCreateClassModal(true);
                 handleTabChange("classrooms");
@@ -196,7 +208,7 @@ function AppContent() {
           {activeTab === "classrooms" && (
             <ClassroomsSection
               selectedClassroomId={selectedClassroom?.id}
-              onSelectClassroom={(cls) => setSelectedClassroom(cls)}
+              onSelectClassroom={handleSelectClassroom}
               onNavigateToAttendance={(clsId) => {
                 const found = classrooms.find((c) => c.id === clsId);
                 if (found) setSelectedClassroom(found);
