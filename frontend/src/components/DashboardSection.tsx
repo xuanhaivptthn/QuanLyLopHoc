@@ -740,18 +740,6 @@ export function DashboardSection({
                 })
               )}
             </div>
-
-            {/* Quick Helper Banner */}
-            <div className="pt-2">
-              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md shadow-blue-500/15 space-y-1.5">
-                <div className="flex items-center gap-1.5 text-xs font-extrabold">
-                  <span>💡 Mẹo Giảng Viên</span>
-                </div>
-                <p className="text-[11px] text-blue-100 leading-snug">
-                  Mã Dynamic QR tự động làm mới 30 giây để ngăn chặn chụp màn hình. Bạn có thể mở trực tiếp từ mục thời khóa biểu bên trái!
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
