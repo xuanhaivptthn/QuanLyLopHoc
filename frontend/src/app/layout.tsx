@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export const metadata: Metadata = {
   title: "Quản Lý Điểm Danh - EduAttend",
@@ -17,7 +17,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="vi" className={cn("h-full antialiased", "font-sans", geist.variable)}>
+    <html lang="vi" className={cn("h-full antialiased", "font-sans", inter.variable)}>
       <body className="min-h-full flex flex-col font-sans bg-background text-foreground">
         <Providers>{children}</Providers>
       </body>
