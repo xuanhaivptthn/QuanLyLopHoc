@@ -7,6 +7,7 @@ import { useToast } from "@/lib/toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Users,
   UserPlus,
@@ -168,13 +169,13 @@ export function StudentsSection({
     <div className="flex flex-col gap-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border">
-        <div>
+        <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Danh Bạ Sinh Viên Hệ Thống
+            Danh Sách Sinh Viên
           </h1>
-          <p className="text-xs text-muted-foreground">
-            Quản lý hồ sơ mã định danh, email và ghi danh sinh viên vào các lớp học
-          </p>
+          <Badge variant="secondary" className="font-mono text-xs">
+            {students.length}
+          </Badge>
         </div>
 
         <div className="flex items-center gap-2">

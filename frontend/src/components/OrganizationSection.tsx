@@ -131,16 +131,11 @@ export function OrganizationSection() {
       {/* Header */}
       <Card className="p-4 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Building2 className="size-5 text-foreground" />
-              <h2 className="text-base font-bold tracking-tight text-foreground">
-                Quản Lý Tổ Chức &amp; Giảng Viên (Center Admin)
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Quản trị trung tâm đào tạo, phân quyền trợ giảng, và gửi lời mời tài khoản giảng viên
-            </p>
+          <div className="flex items-center gap-2.5">
+            <Building2 className="size-5 text-foreground" />
+            <h2 className="text-base font-bold tracking-tight text-foreground">
+              Quản Lý Tổ Chức &amp; Giảng Viên
+            </h2>
           </div>
 
           <Button

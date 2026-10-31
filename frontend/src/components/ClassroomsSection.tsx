@@ -554,13 +554,13 @@ export function ClassroomsSection({
         <div className="flex flex-col gap-5">
           {/* Header & Controls */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
+            <div className="flex items-center gap-2.5">
               <h1 className="text-xl font-bold tracking-tight text-foreground">
-                Quản Lý Lớp Học &amp; Khóa Đào Tạo
+                Lớp Học &amp; Khóa Đào Tạo
               </h1>
-              <p className="text-xs text-muted-foreground">
-                Danh sách các lớp học, sĩ số sinh viên và lịch các buổi điểm danh trong học kỳ
-              </p>
+              <Badge variant="secondary" className="font-mono text-xs">
+                {classrooms.length}
+              </Badge>
             </div>
 
             <Button

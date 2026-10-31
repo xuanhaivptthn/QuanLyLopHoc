@@ -336,13 +336,15 @@ export function AttendanceSection({
     <div className="flex flex-col gap-6">
       {/* Top Bar: Classroom & Session Selector */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border">
-        <div>
+        <div className="flex items-center gap-2.5">
           <h1 className="text-xl font-bold tracking-tight text-foreground">
-            Phòng Điểm Danh &amp; Roll-Call Trực Tiếp
+            Phòng Điểm Danh
           </h1>
-          <p className="text-xs text-muted-foreground">
-            Phát sinh mã QR động 30 giây hoặc thực hiện điểm danh danh sách theo lớp học
-          </p>
+          {activeSession && (
+            <Badge variant="outline" className="font-mono text-xs">
+              {activeSession.classroomCode}
+            </Badge>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

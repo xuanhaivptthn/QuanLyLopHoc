@@ -153,17 +153,7 @@ export function Sidebar({
 
           {!isCollapsed && (
             <div className="flex-1 flex items-center justify-between min-w-0">
-              <div className="flex flex-col text-left truncate">
-                <span className="truncate">{item.label}</span>
-                <span
-                  className={cn(
-                    "text-[10px] truncate font-normal",
-                    isActive ? "text-primary-foreground/75" : "text-muted-foreground/70"
-                  )}
-                >
-                  {item.description}
-                </span>
-              </div>
+              <span className="truncate">{item.label}</span>
 
               <div className="ml-2 shrink-0">
                 {item.badgeTag && (
