@@ -22,31 +22,31 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
-    @Operation(summary = "Authenticate user and issue JWT token")
+    @Operation(summary = "Authenticate user and issue JWT token", security = {})
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/register-teacher")
-    @Operation(summary = "Register an independent/solo teacher account")
+    @Operation(summary = "Register an independent/solo teacher account", security = {})
     public ResponseEntity<AuthResponse> registerSoloTeacher(@Valid @RequestBody RegisterSoloTeacherRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerSoloTeacher(request));
     }
 
     @PostMapping("/register-center")
-    @Operation(summary = "Register a teaching center/school with an administrator account")
+    @Operation(summary = "Register a teaching center/school with an administrator account", security = {})
     public ResponseEntity<AuthResponse> registerCenter(@Valid @RequestBody RegisterCenterRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerCenter(request));
     }
 
     @PostMapping("/accept-invite")
-    @Operation(summary = "Accept center teacher invitation and activate account")
+    @Operation(summary = "Accept center teacher invitation and activate account", security = {})
     public ResponseEntity<AuthResponse> acceptInvitation(@Valid @RequestBody AcceptInviteRequest request) {
         return ResponseEntity.ok(authService.acceptInvitation(request));
     }
 
     @GetMapping("/me")
-    @Operation(summary = "Get currently authenticated user profile", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Get currently authenticated user profile", security = @SecurityRequirement(name = "BearerAuth"))
     public ResponseEntity<UserSummaryResponse> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
         if (principal == null) {
             throw new com.attendance.common.exception.UnauthorizedException("User is not authenticated");

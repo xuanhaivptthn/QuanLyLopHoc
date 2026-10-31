@@ -27,7 +27,6 @@ function LoginFormInner() {
     password: "",
   });
 
-  // If already authenticated, redirect to target destination
   useEffect(() => {
     if (!isAuthLoading && isAuthenticated) {
       router.replace(redirectUrl.startsWith("/") ? redirectUrl : "/");
@@ -55,175 +54,109 @@ function LoginFormInner() {
       };
 
       login(res.token, user, redirectUrl);
-      toast.success(`Chào mừng trở lại, ${res.fullName}!`, "Đăng nhập thành công");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Email hoặc mật khẩu không chính xác";
+      const msg = err instanceof Error ? err.message : "Email hoặc mật khẩu không đúng";
       setErrorMessage(msg);
-      toast.error(msg, "Lỗi đăng nhập");
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 relative overflow-hidden transition-colors duration-300">
-      {/* Background Ambient Lighting */}
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-blue-600/15 dark:bg-blue-600/20 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-indigo-600/15 dark:bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none" />
-
-      {/* Subtle Dot Grid Layer */}
-      <div
-        className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08] pointer-events-none"
-        style={{
-          backgroundImage: `radial-gradient(currentColor 1px, transparent 1px)`,
-          backgroundSize: "24px 24px",
-        }}
-      />
-
-      {/* Top Utility Bar (Theme Toggle & System Status) */}
-      <header className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20 flex items-center gap-2.5">
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 dark:bg-slate-900/80 border border-slate-200/80 dark:border-slate-800/80 text-[11px] text-slate-600 dark:text-slate-300 shadow-xs backdrop-blur-md">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Hệ thống sẵn sàng</span>
-        </div>
-
+    <div className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 relative">
+      {/* Theme Toggle Button */}
+      <div className="absolute top-4 right-4 z-20">
         <button
           type="button"
           onClick={toggleTheme}
-          className="p-2 sm:px-3 sm:py-1.5 rounded-full bg-white/80 dark:bg-slate-900/80 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-800/80 text-slate-700 dark:text-slate-300 transition-all text-xs flex items-center gap-1.5 shadow-xs backdrop-blur-md cursor-pointer"
-          title="Chuyển đổi giao diện Sáng / Tối"
-          aria-label="Toggle Theme"
+          className="p-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 transition-colors shadow-xs cursor-pointer"
+          title="Đổi giao diện"
+          aria-label="Đổi giao diện"
         >
           {theme === "dark" ? (
-            <>
-              <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              <span className="text-[11px] font-medium hidden sm:inline">Chế độ Sáng</span>
-            </>
+            <svg className="w-4 h-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 9h-1m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
           ) : (
-            <>
-              <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-              </svg>
-              <span className="text-[11px] font-medium hidden sm:inline">Chế độ Tối</span>
-            </>
+            <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+            </svg>
           )}
         </button>
-      </header>
+      </div>
 
-      {/* Focused Login Prompt Card */}
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/95 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 sm:p-9 shadow-2xl backdrop-blur-xl space-y-6">
-          {/* Brand Header */}
-          <div className="text-center space-y-2">
-            <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 text-white flex items-center justify-center mx-auto shadow-lg shadow-blue-500/25">
-              <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-                Đăng Nhập EduAttend
-              </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                Hệ thống Quản lý Lớp học & Điểm danh Dynamic QR
-              </p>
-            </div>
+      {/* Login Card */}
+      <div className="w-full max-w-sm">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-5">
+          {/* Header */}
+          <div className="text-center space-y-1">
+            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
+              Đăng nhập
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Nhập email và mật khẩu của bạn
+            </p>
           </div>
 
-          {/* Context Reason Alert Banners */}
+          {/* Context Reason Notice */}
           {reason === "session_expired" && (
             <div
               role="alert"
-              className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-start gap-2.5 shadow-sm"
+              className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs"
             >
-              <svg className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div>
-                <p className="font-bold">Phiên làm việc đã hết hạn</p>
-                <p className="text-[11px] opacity-90 mt-0.5">
-                  Vui lòng đăng nhập lại để tiếp tục phiên làm việc an toàn của bạn.
-                </p>
-              </div>
+              Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại.
             </div>
           )}
 
           {reason === "unauthenticated" && (
             <div
               role="alert"
-              className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 text-blue-800 dark:text-blue-300 text-xs flex items-start gap-2.5 shadow-sm"
+              className="p-3 rounded-xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800/60 text-blue-800 dark:text-blue-300 text-xs"
             >
-              <svg className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              <div>
-                <p className="font-bold">Yêu cầu đăng nhập</p>
-                <p className="text-[11px] opacity-90 mt-0.5">
-                  Vui lòng đăng nhập tài khoản để truy cập trang quản lý lớp học.
-                </p>
-              </div>
+              Vui lòng đăng nhập để tiếp tục.
             </div>
           )}
 
-          {/* Error Message Box */}
+          {/* Error Message */}
           {errorMessage && (
             <div
               role="alert"
-              className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2.5"
+              className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-rose-700 dark:text-rose-300 text-xs"
             >
-              <svg className="w-4 h-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{errorMessage}</span>
+              {errorMessage}
             </div>
           )}
 
-          {/* Pure Login Form */}
+          {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label
-                className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5"
+                className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
                 htmlFor="login-email"
               >
-                Địa Chỉ Email *
+                Email
               </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
-                </div>
-                <input
-                  id="login-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  value={loginForm.email}
-                  onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  placeholder="name@university.edu.vn"
-                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs font-mono focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-hidden transition-all"
-                />
-              </div>
+              <input
+                id="login-email"
+                type="email"
+                required
+                autoComplete="email"
+                value={loginForm.email}
+                onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
+                placeholder="name@example.com"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-hidden transition-all"
+              />
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label
-                  className="block text-xs font-semibold text-slate-700 dark:text-slate-300"
-                  htmlFor="login-password"
-                >
-                  Mật Khẩu *
-                </label>
-              </div>
+              <label
+                className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
+                htmlFor="login-password"
+              >
+                Mật khẩu
+              </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 dark:text-slate-500">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
                 <input
                   id="login-password"
                   type={showPassword ? "text" : "password"}
@@ -232,13 +165,12 @@ function LoginFormInner() {
                   value={loginForm.password}
                   onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                   placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-hidden transition-all"
+                  className="w-full px-3 pr-10 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-hidden transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
-                  title={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                   aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
                 >
                   {showPassword ? (
@@ -255,53 +187,15 @@ function LoginFormInner() {
               </div>
             </div>
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 hover:from-blue-500 hover:to-violet-500 disabled:opacity-50 text-white font-bold text-xs shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed mt-2"
+              className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium text-xs transition-colors shadow-xs cursor-pointer disabled:cursor-not-allowed mt-2"
             >
-              {isSubmitting ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  Đang xác thực thông tin...
-                </>
-              ) : (
-                <>
-                  <span>Đăng Nhập</span>
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </>
-              )}
+              {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
-
-          {/* Footer Security Badges */}
-          <div className="pt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-center gap-4 text-[11px] text-slate-400">
-            <span className="flex items-center gap-1">
-              <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-              </svg>
-              Bảo mật SSL 256-Bit
-            </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <svg className="w-3.5 h-3.5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-              Xác thực JWT
-            </span>
-          </div>
         </div>
-
-        {/* Bottom copyright notice */}
-        <p className="text-center text-[11px] text-slate-400 dark:text-slate-600 mt-4">
-          EduAttend Attendance Management Platform © 2026
-        </p>
       </div>
     </div>
   );
@@ -309,13 +203,8 @@ function LoginFormInner() {
 
 function LoginLoadingSkeleton() {
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      <div className="flex flex-col items-center space-y-4">
-        <div className="w-12 h-12 rounded-2xl bg-blue-600/30 flex items-center justify-center animate-pulse">
-          <div className="w-6 h-6 rounded-lg bg-blue-500 animate-ping" />
-        </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">Đang tải biểu mẫu đăng nhập...</p>
-      </div>
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500 text-xs">
+      Đang tải...
     </div>
   );
 }

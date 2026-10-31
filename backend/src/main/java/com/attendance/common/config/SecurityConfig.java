@@ -23,14 +23,47 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> {})
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+                            org.springframework.http.ProblemDetail problem = org.springframework.http.ProblemDetail.forStatusAndDetail(
+                                    org.springframework.http.HttpStatus.UNAUTHORIZED,
+                                    "Authentication is required to access this resource"
+                            );
+                            problem.setTitle("Unauthorized");
+                            problem.setType(java.net.URI.create("https://api.attendance.local/errors/unauthorized"));
+                            problem.setProperty("timestamp", java.time.Instant.now());
+                            new com.fasterxml.jackson.databind.ObjectMapper()
+                                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                                    .writeValue(response.getOutputStream(), problem);
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType(org.springframework.http.MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+                            org.springframework.http.ProblemDetail problem = org.springframework.http.ProblemDetail.forStatusAndDetail(
+                                    org.springframework.http.HttpStatus.FORBIDDEN,
+                                    "You do not have permission to access this resource"
+                            );
+                            problem.setTitle("Forbidden");
+                            problem.setType(java.net.URI.create("https://api.attendance.local/errors/forbidden"));
+                            problem.setProperty("timestamp", java.time.Instant.now());
+                            new com.fasterxml.jackson.databind.ObjectMapper()
+                                    .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                                    .writeValue(response.getOutputStream(), problem);
+                        })
+                )
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints: Preflight CORS requests
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         // Public endpoints: Swagger UI & OpenAPI docs
                         .requestMatchers(
                                 "/docs/**",
