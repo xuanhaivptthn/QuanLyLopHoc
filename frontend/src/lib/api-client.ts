@@ -1,4 +1,5 @@
 import { ApiLogEntry } from "@/types";
+import { toast } from "@/lib/toast";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -8,6 +9,11 @@ type AuthListener = (token: string | null) => void;
 let apiLogs: ApiLogEntry[] = [];
 const logListeners = new Set<LogListener>();
 const authListeners = new Set<AuthListener>();
+
+export interface FetchApiOptions extends RequestInit {
+  skipErrorToast?: boolean;
+  skipConsoleLog?: boolean;
+}
 
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
@@ -58,7 +64,7 @@ function addLogEntry(entry: ApiLogEntry) {
 // -------------------------------------------------------------
 export async function fetchApi<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: FetchApiOptions = {}
 ): Promise<T> {
   const token = getStoredToken();
   const startTime = Date.now();
@@ -118,17 +124,50 @@ export async function fetchApi<T>(
       let errMsg = `HTTP ${response.status} ${response.statusText}`;
 
       if (errorObj) {
-        if (typeof errorObj.detail === "string") {
+        if (typeof errorObj.detail === "string" && errorObj.detail.trim().length > 0) {
           errMsg = errorObj.detail;
-        } else if (typeof errorObj.message === "string") {
+        } else if (typeof errorObj.title === "string" && errorObj.title.trim().length > 0) {
+          errMsg = errorObj.title;
+        } else if (typeof errorObj.message === "string" && errorObj.message.trim().length > 0) {
           errMsg = errorObj.message;
         } else if (Array.isArray(errorObj.errors)) {
           errMsg = errorObj.errors.join(", ");
+        }
+
+        if (errorObj.invalidFields && typeof errorObj.invalidFields === "object") {
+          const fields = Object.entries(errorObj.invalidFields as Record<string, string>)
+            .map(([field, msg]) => `${field}: ${msg}`)
+            .join("; ");
+          errMsg = `${errMsg} (${fields})`;
         }
       }
 
       logEntry.error = errMsg;
       addLogEntry(logEntry);
+
+      // Detailed styled console logging for developers
+      if (!options.skipConsoleLog) {
+        console.groupCollapsed(
+          `%c[API Error] ${method} ${endpoint} (${response.status} ${response.statusText})`,
+          "color: #ef4444; font-weight: bold;"
+        );
+        console.error("Error Message:", errMsg);
+        console.log("Full URL:", `${API_BASE_URL}${endpoint}`);
+        console.log("Status Code:", response.status, response.statusText);
+        if (requestBodyParsed !== undefined) {
+          console.log("Request Payload:", requestBodyParsed);
+        }
+        if (responseData !== null) {
+          console.log("Response Body:", responseData);
+        }
+        console.log("Response Duration:", `${durationMs}ms`);
+        console.groupEnd();
+      }
+
+      // Simple Error Toast Notification
+      if (!options.skipErrorToast) {
+        toast.error(errMsg, `Lỗi HTTP ${response.status}`);
+      }
 
       if (response.status === 401 && endpoint !== "/auth/login") {
         setStoredToken(null);
@@ -148,7 +187,7 @@ export async function fetchApi<T>(
     return responseData as T;
   } catch (error: unknown) {
     const durationMs = Date.now() - startTime;
-    const errMsg = error instanceof Error ? error.message : "Network error";
+    const errMsg = error instanceof Error ? error.message : "Lỗi kết nối mạng";
 
     if (!apiLogs.some((l) => l.id === logId)) {
       addLogEntry({
@@ -162,6 +201,23 @@ export async function fetchApi<T>(
         durationMs,
         error: errMsg,
       });
+
+      if (!options.skipConsoleLog) {
+        console.groupCollapsed(
+          `%c[API Network Disconnected] ${method} ${endpoint}`,
+          "color: #dc2626; font-weight: bold;"
+        );
+        console.error("Network Error Details:", error);
+        console.log("Target URL:", `${API_BASE_URL}${endpoint}`);
+        if (requestBodyParsed !== undefined) {
+          console.log("Request Payload:", requestBodyParsed);
+        }
+        console.groupEnd();
+      }
+
+      if (!options.skipErrorToast) {
+        toast.error(errMsg, "Không thể kết nối máy chủ");
+      }
     }
 
     throw error;

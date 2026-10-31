@@ -38,11 +38,16 @@ function LoginFormInner() {
     setErrorMessage(null);
     setIsSubmitting(true);
 
+    console.info("[Auth] Attempting login for email:", loginForm.email);
+
     try {
       const res = await fetchApi<AuthResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify(loginForm),
+        skipErrorToast: true,
       });
+
+      console.info("[Auth] Login successful:", res.email, `(${res.role})`);
 
       const user: User = {
         id: res.userId,
@@ -53,11 +58,13 @@ function LoginFormInner() {
         activeOrganizationName: res.activeOrganizationName,
       };
 
+      toast.success(`Chào mừng trở lại, ${res.fullName}!`, "Đăng nhập thành công");
       login(res.token, user, redirectUrl);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Email hoặc mật khẩu không đúng";
+      console.error("[Auth] Login failed:", err);
+      const msg = err instanceof Error ? err.message : "Email hoặc mật khẩu không chính xác";
       setErrorMessage(msg);
-      toast.error(msg);
+      toast.error(msg, "Đăng nhập thất bại");
     } finally {
       setIsSubmitting(false);
     }
