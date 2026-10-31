@@ -55,11 +55,20 @@ function AppContent() {
           return currentTarget;
         });
 
-        // Fetch sessions for first classroom
-        if (currentTarget) {
+        // Fetch sessions across all classrooms for a complete timetable
+        if (fetchedClassrooms.length > 0) {
           try {
-            const sess = await fetchApi<AttendanceSession[]>(`/classrooms/${(currentTarget as Classroom).id}/sessions`);
-            setSessions(sess || []);
+            const sessionPromises = fetchedClassrooms.map((c) =>
+              fetchApi<AttendanceSession[]>(`/classrooms/${c.id}/sessions`)
+            );
+            const results = await Promise.allSettled(sessionPromises);
+            const allSessions: AttendanceSession[] = [];
+            for (const res of results) {
+              if (res.status === "fulfilled" && Array.isArray(res.value)) {
+                allSessions.push(...res.value);
+              }
+            }
+            setSessions(allSessions);
           } catch {
             setSessions([]);
           }
