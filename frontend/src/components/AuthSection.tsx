@@ -135,7 +135,7 @@ export function AuthSection({ onClose }: AuthSectionProps) {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetchApi<AuthResponse>("/auth/accept-invitation", {
+      const res = await fetchApi<AuthResponse>("/auth/accept-invite", {
         method: "POST",
         body: JSON.stringify({
           token: inviteForm.token.trim(),

@@ -200,14 +200,25 @@ function LoginFormInner() {
               {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
 
-            <div className="pt-2 text-center text-xs text-muted-foreground">
-              Chưa có tài khoản?{" "}
-              <Link
-                href="/signup"
-                className="text-foreground font-semibold underline underline-offset-4 hover:opacity-80"
-              >
-                Đăng ký
-              </Link>
+            <div className="pt-2 text-center text-xs text-muted-foreground flex flex-col gap-1.5">
+              <div>
+                Chưa có tài khoản?{" "}
+                <Link
+                  href="/signup"
+                  className="text-foreground font-semibold underline underline-offset-4 hover:opacity-80"
+                >
+                  Đăng ký
+                </Link>
+              </div>
+              <div>
+                Có mã lời mời từ trung tâm?{" "}
+                <Link
+                  href="/accept-invite"
+                  className="text-foreground font-semibold underline underline-offset-4 hover:opacity-80"
+                >
+                  Kích hoạt lời mời
+                </Link>
+              </div>
             </div>
           </form>
         </Card>

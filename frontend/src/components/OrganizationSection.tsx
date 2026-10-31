@@ -316,13 +316,15 @@ export function OrganizationSection() {
                           variant="ghost"
                           size="sm"
                           onClick={() => {
-                            navigator.clipboard.writeText(inv.token);
-                            toast.success("Đã chép token kích hoạt!", "Sao chép");
+                            const inviteUrl = `${window.location.origin}/accept-invite?token=${inv.token}`;
+                            navigator.clipboard.writeText(inviteUrl);
+                            toast.success("Đã sao chép liên kết mời giảng viên!", "Sao chép thành công");
                           }}
                           className="h-5 text-[10px] px-1.5"
+                          title="Sao chép link kích hoạt tài khoản"
                         >
                           <Copy className="size-3" data-icon="inline-start" />
-                          Copy
+                          Link
                         </Button>
                       </div>
                     </td>

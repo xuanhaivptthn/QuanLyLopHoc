@@ -460,15 +460,26 @@ function SignupFormInner() {
             </form>
           )}
 
-          {/* Link to Login */}
-          <div className="pt-1 text-center text-xs text-muted-foreground">
-            Đã có tài khoản?{" "}
-            <Link
-              href="/login"
-              className="text-foreground font-semibold hover:underline"
-            >
-              Đăng nhập
-            </Link>
+          {/* Link to Login & Accept Invite */}
+          <div className="pt-1 text-center text-xs text-muted-foreground flex flex-col gap-1.5">
+            <div>
+              Đã có tài khoản?{" "}
+              <Link
+                href="/login"
+                className="text-foreground font-semibold underline underline-offset-4 hover:opacity-80"
+              >
+                Đăng nhập
+              </Link>
+            </div>
+            <div>
+              Được mời làm giảng viên tại trung tâm?{" "}
+              <Link
+                href="/accept-invite"
+                className="text-foreground font-semibold underline underline-offset-4 hover:opacity-80"
+              >
+                Kích hoạt lời mời
+              </Link>
+            </div>
           </div>
         </Card>
       </div>

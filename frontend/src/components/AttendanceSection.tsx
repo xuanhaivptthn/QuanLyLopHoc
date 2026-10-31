@@ -7,37 +7,43 @@ import {
   AttendanceRecord,
   AttendanceStatus,
   QrTokenResponse,
-  UpdateRecordItem,
 } from "@/types";
 import { fetchApi } from "@/lib/api-client";
-import { QrCodeView } from "@/components/QrCodeView";
 import { useToast } from "@/lib/toast";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { QrCodeView } from "@/components/QrCodeView";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Zap,
-  Smartphone,
-  Calendar,
+  QrCode,
+  Users,
   Clock,
+  RefreshCw,
+  Plus,
   Maximize2,
   Minimize2,
-  Copy,
-  Plus,
-  RefreshCw,
-  Check,
   CheckCircle2,
   Save,
-  X,
+  Search,
+  Check,
+  AlertCircle,
+  Copy,
+  Smartphone,
+  Calendar,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface AttendanceSectionProps {
-  initialClassroomId?: string | null;
+  initialClassroomId?: string;
+  initialSessionId?: string;
+  onOpenClassroom?: (classroomId: string) => void;
 }
 
-export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps) {
+export function AttendanceSection({
+  initialClassroomId,
+  initialSessionId,
+  onOpenClassroom,
+}: AttendanceSectionProps) {
   const toast = useToast();
   const [, startTransition] = useTransition();
 
@@ -46,7 +52,14 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
   const [activeSession, setActiveSession] = useState<AttendanceSession | null>(null);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
-  const [localRecords, setLocalRecords] = useState<Record<string, { status: AttendanceStatus; remarks: string }>>({});
+
+  // Studio Mode: QR Studio vs Manual Roll-Call Sheet
+  const [studioMode, setStudioMode] = useState<"qr" | "roster">("qr");
+
+  // Local record status modifications { recordId: { status, remarks } }
+  const [localRecords, setLocalRecords] = useState<
+    Record<string, { status: AttendanceStatus; remarks: string }>
+  >({});
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -57,61 +70,62 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
   const [isProjectorMode, setIsProjectorMode] = useState<boolean>(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check-in simulator state
+  // Check-in simulator state (for demo / testing student check-in)
   const [checkInQrToken, setCheckInQrToken] = useState("");
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+
+  // Filter in roster
+  const [rosterSearch, setRosterSearch] = useState("");
 
   // Create Session Modal State
   const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
   const [sessionForm, setSessionForm] = useState({
-    sessionDate: "",
-    startTime: "08:00",
-    endTime: "10:15",
+    sessionDate: new Date().toISOString().split("T")[0],
+    startTime: "08:00:00",
+    endTime: "10:30:00",
   });
 
-  useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    setSessionForm((prev) => ({
-      ...prev,
-      sessionDate: prev.sessionDate || today,
-    }));
-  }, []);
-
-  const selectedClassroomIdRef = useRef(selectedClassroomId);
-  useEffect(() => {
-    selectedClassroomIdRef.current = selectedClassroomId;
-  }, [selectedClassroomId]);
-
+  // Load classrooms on mount
   const loadClassrooms = useCallback(async () => {
     try {
       const data = await fetchApi<Classroom[]>("/classrooms");
       setClassrooms(data || []);
-      if (!selectedClassroomIdRef.current && data && data.length > 0) {
+      if (!selectedClassroomId && data && data.length > 0) {
         setSelectedClassroomId(data[0].id);
       }
     } catch {
       // Ignored
     }
-  }, []);
+  }, [selectedClassroomId]);
 
-  const loadSessions = useCallback(async (classroomId: string) => {
-    if (!classroomId) return;
-    setIsLoading(true);
-    try {
-      const data = await fetchApi<AttendanceSession[]>(`/classrooms/${classroomId}/sessions`);
-      setSessions(data || []);
-      if (data && data.length > 0) {
-        setActiveSession((prev) => (prev ? data.find((s) => s.id === prev.id) || data[0] : data[0]));
-      } else {
-        setActiveSession(null);
+  // Load sessions for selected classroom
+  const loadSessions = useCallback(
+    async (classroomId: string, targetSessionId?: string) => {
+      if (!classroomId) return;
+      setIsLoading(true);
+      try {
+        const data = await fetchApi<AttendanceSession[]>(`/classrooms/${classroomId}/sessions`);
+        setSessions(data || []);
+        if (data && data.length > 0) {
+          const match = targetSessionId
+            ? data.find((s) => s.id === targetSessionId)
+            : initialSessionId
+            ? data.find((s) => s.id === initialSessionId)
+            : data[0];
+          setActiveSession(match || data[0]);
+        } else {
+          setActiveSession(null);
+        }
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Không thể tải danh sách ca học", "Lỗi");
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Không thể tải danh sách ca học", "Lỗi");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [toast]);
+    },
+    [initialSessionId, toast]
+  );
 
+  // Load attendance records for a session
   const loadSessionRecords = useCallback(async (sessionId: string) => {
     try {
       const data = await fetchApi<AttendanceRecord[]>(`/sessions/${sessionId}/records`);
@@ -121,12 +135,29 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
         mapping[r.id] = { status: r.status, remarks: r.remarks || "" };
       });
       setLocalRecords(mapping);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Không thể tải danh sách điểm danh", "Lỗi");
+    } catch {
+      setRecords([]);
+      setLocalRecords({});
     }
-  }, [toast]);
+  }, []);
 
-  // Initial load
+  // Fetch / Refresh Dynamic QR Token (POST /sessions/{id}/open-qr)
+  const refreshDynamicQr = useCallback(
+    async (sessionId: string) => {
+      try {
+        const data = await fetchApi<QrTokenResponse>(`/sessions/${sessionId}/open-qr`, {
+          method: "POST",
+        });
+        setQrTokenData(data);
+        setCheckInQrToken(data.qrToken);
+        setQrSecondsLeft(data.validitySeconds || 30);
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Không thể tạo mã QR điểm danh", "Lỗi QR");
+      }
+    },
+    [toast]
+  );
+
   useEffect(() => {
     loadClassrooms();
   }, [loadClassrooms]);
@@ -140,42 +171,26 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
   useEffect(() => {
     if (activeSession?.id) {
       loadSessionRecords(activeSession.id);
+      refreshDynamicQr(activeSession.id);
     } else {
       setRecords([]);
-      setLocalRecords({});
       setQrTokenData(null);
-      setQrSecondsLeft(0);
     }
-  }, [activeSession?.id, loadSessionRecords]);
+  }, [activeSession?.id, loadSessionRecords, refreshDynamicQr]);
 
-  // Generate / Refresh Dynamic QR Token
-  const handleGenerateQr = useCallback(async () => {
-    if (!activeSession) return;
-    try {
-      const data = await fetchApi<QrTokenResponse>(`/sessions/${activeSession.id}/open-qr`, {
-        method: "POST",
-      });
-      setQrTokenData(data);
-      setCheckInQrToken(data.qrToken);
-      setQrSecondsLeft(data.validitySeconds || 30);
-      toast.info(`Mã QR động mới đã kích hoạt (hiệu lực ${data.validitySeconds || 30}s)`, "Dynamic QR");
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Không thể tạo mã QR", "Lỗi QR");
-    }
-  }, [activeSession, toast]);
-
-  // QR Countdown Timer
+  // QR Countdown & Auto-Refresh Timer
   useEffect(() => {
-    if (!qrTokenData || qrSecondsLeft <= 0) {
-      if (timerRef.current) clearInterval(timerRef.current);
-      return;
-    }
+    if (!qrTokenData || !activeSession) return;
+
+    if (timerRef.current) clearInterval(timerRef.current);
 
     timerRef.current = setInterval(() => {
       setQrSecondsLeft((prev) => {
         if (prev <= 1) {
           if (autoRefreshQr && activeSession) {
-            handleGenerateQr();
+            refreshDynamicQr(activeSession.id);
+            // Also refresh records to catch any new check-ins
+            loadSessionRecords(activeSession.id);
           }
           return 0;
         }
@@ -186,7 +201,7 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [qrTokenData, qrSecondsLeft, autoRefreshQr, activeSession, handleGenerateQr]);
+  }, [qrTokenData, activeSession, autoRefreshQr, refreshDynamicQr, loadSessionRecords]);
 
   // Create Session
   const handleCreateSession = async (e: React.FormEvent) => {
@@ -194,17 +209,19 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
     if (!selectedClassroomId) return;
     setIsLoading(true);
     try {
-      const newSession = await fetchApi<AttendanceSession>(`/classrooms/${selectedClassroomId}/sessions`, {
-        method: "POST",
-        body: JSON.stringify(sessionForm),
-      });
+      const newSession = await fetchApi<AttendanceSession>(
+        `/classrooms/${selectedClassroomId}/sessions`,
+        {
+          method: "POST",
+          body: JSON.stringify(sessionForm),
+        }
+      );
       toast.success(
         `Đã tạo ca học ngày ${newSession.sessionDate} (${newSession.startTime} - ${newSession.endTime})`,
         "Tạo ca học thành công"
       );
       setShowCreateSessionModal(false);
-      await loadSessions(selectedClassroomId);
-      setActiveSession(newSession);
+      await loadSessions(selectedClassroomId, newSession.id);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Lỗi khi tạo ca học", "Lỗi");
     } finally {
@@ -212,7 +229,7 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
     }
   };
 
-  // Student Check-In Simulator
+  // Student Check-In Simulator (POST /sessions/{id}/check-in)
   const handleStudentCheckIn = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeSession || !checkInQrToken.trim()) return;
@@ -224,9 +241,12 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
       });
       toast.success("Điểm danh sinh viên thành công!", "Check-in thành công");
       loadSessionRecords(activeSession.id);
-      loadSessions(selectedClassroomId);
+      loadSessions(selectedClassroomId, activeSession.id);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Mã QR không hợp lệ hoặc đã hết hạn", "Check-in thất bại");
+      toast.error(
+        err instanceof Error ? err.message : "Mã QR không hợp lệ hoặc đã hết hạn",
+        "Check-in thất bại"
+      );
     } finally {
       setIsCheckingIn(false);
     }
@@ -248,117 +268,124 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
     setLocalRecords((prev) => ({
       ...prev,
       [recordId]: {
-        ...(prev[recordId] || { status: "PRESENT" }),
+        ...(prev[recordId] || { status: "ABSENT" as AttendanceStatus }),
         remarks,
       },
     }));
   };
 
-  // Mark all present shortcut
+  // Mark all enrolled as PRESENT
   const handleMarkAllPresent = () => {
     const updated: Record<string, { status: AttendanceStatus; remarks: string }> = {};
     records.forEach((r) => {
       updated[r.id] = {
         status: "PRESENT",
-        remarks: localRecords[r.id]?.remarks || "Có mặt đầy đủ",
+        remarks: localRecords[r.id]?.remarks || r.remarks || "",
       };
     });
     setLocalRecords(updated);
-    toast.info("Đã đánh dấu tất cả sinh viên CÓ MẶT. Nhớ bấm 'Lưu Kết Quả'.", "Đánh dấu tất cả");
+    toast.info("Đã chọn trạng thái Có mặt cho tất cả sinh viên. Nhấn 'Lưu Điểm Danh' để hoàn tất.");
   };
 
-  // Save Bulk Records
+  // Save Bulk Records (PUT /sessions/{id}/records)
   const handleSaveRecords = async () => {
     if (!activeSession) return;
     setIsSaving(true);
     try {
-      const payload: UpdateRecordItem[] = records.map((r) => ({
-        recordId: r.id,
-        status: localRecords[r.id]?.status || r.status,
-        remarks: localRecords[r.id]?.remarks,
-      }));
+      const payload = {
+        records: Object.entries(localRecords).map(([recordId, val]) => ({
+          recordId,
+          status: val.status,
+          remarks: val.remarks || undefined,
+        })),
+      };
 
-      await fetchApi<AttendanceRecord[]>(`/sessions/${activeSession.id}/records`, {
+      const updated = await fetchApi<AttendanceRecord[]>(`/sessions/${activeSession.id}/records`, {
         method: "PUT",
-        body: JSON.stringify({ records: payload }),
+        body: JSON.stringify(payload),
       });
 
-      toast.success("Đã lưu bảng điểm danh thành công!", "Cập nhật hoàn tất");
-      loadSessionRecords(activeSession.id);
-      loadSessions(selectedClassroomId);
+      setRecords(updated);
+      toast.success("Đã lưu kết quả điểm danh ca học!", "Lưu thành công");
+      await loadSessions(selectedClassroomId, activeSession.id);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Lỗi khi lưu bảng điểm danh", "Lỗi lưu");
+      toast.error(err instanceof Error ? err.message : "Không thể lưu điểm danh", "Lỗi lưu");
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Count attendance stats
+  // Filter records in roster
+  const filteredRecords = records.filter(
+    (r) =>
+      r.studentName.toLowerCase().includes(rosterSearch.toLowerCase()) ||
+      r.studentCode.toLowerCase().includes(rosterSearch.toLowerCase())
+  );
+
+  // Calculate live counters
+  const totalInSession = records.length;
   const presentCount = Object.values(localRecords).filter((r) => r.status === "PRESENT").length;
   const lateCount = Object.values(localRecords).filter((r) => r.status === "LATE").length;
   const absentCount = Object.values(localRecords).filter((r) => r.status === "ABSENT").length;
   const excusedCount = Object.values(localRecords).filter((r) => r.status === "EXCUSED").length;
+  const attendanceRate = totalInSession > 0 ? Math.round(((presentCount + lateCount) / totalInSession) * 100) : 0;
 
   const currentClassroom = classrooms.find((c) => c.id === selectedClassroomId);
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Header and Classroom / Session Selectors */}
-      <Card className="p-4 shadow-2xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Zap className="size-5 text-foreground" />
-              <h2 className="text-base font-bold tracking-tight text-foreground">
-                Studio Điểm Danh &amp; Dynamic QR
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Mã QR xoay vòng 30s chống gian lận, chế độ máy chiếu giảng đường và sổ điểm danh trực tiếp
-            </p>
-          </div>
-
-          {/* Selectors */}
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2">
-              <label htmlFor="select-class" className="text-xs font-medium text-muted-foreground">
-                Lớp:
-              </label>
-              <select
-                id="select-class"
-                value={selectedClassroomId}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  startTransition(() => {
-                    setSelectedClassroomId(val);
-                  });
-                }}
-                className="px-2.5 py-1 rounded-md border border-border bg-background text-foreground text-xs"
-              >
-                {classrooms.map((cls) => (
-                  <option key={cls.id} value={cls.id}>
-                    {cls.code} - {cls.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setShowCreateSessionModal(true)}
-              className="text-xs"
-            >
-              <Plus className="size-3.5" data-icon="inline-start" />
-              Tạo Ca Học
-            </Button>
-          </div>
+      {/* Top Bar: Classroom & Session Selector */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            Phòng Điểm Danh &amp; Roll-Call Trực Tiếp
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Phát sinh mã QR động 30 giây hoặc thực hiện điểm danh danh sách theo lớp học
+          </p>
         </div>
-      </Card>
 
-      {/* Sessions Horizontal Scroller */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Class Select */}
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Lớp:</span>
+            <select
+              value={selectedClassroomId}
+              onChange={(e) => {
+                const val = e.target.value;
+                startTransition(() => {
+                  setSelectedClassroomId(val);
+                });
+              }}
+              className="h-8 px-2.5 rounded-md border border-border bg-background text-foreground text-xs font-semibold"
+            >
+              {classrooms.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {cls.code} - {cls.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCreateSessionModal(true)}
+            className="h-8 text-xs gap-1"
+          >
+            <Plus className="size-3.5" />
+            Tạo ca học
+          </Button>
+        </div>
+      </div>
+
+      {/* Sessions Horizontal Bar */}
       {sessions.length > 0 && (
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
+            Chọn ca học:
+          </span>
           {sessions.map((s) => {
             const isSelected = activeSession?.id === s.id;
             return (
@@ -366,476 +393,584 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
                 key={s.id}
                 type="button"
                 variant={isSelected ? "default" : "outline"}
+                size="sm"
                 onClick={() => setActiveSession(s)}
-                className="h-auto py-2 px-3 text-left shrink-0 rounded-lg flex flex-col items-start gap-1"
+                className="h-8 px-3 text-xs gap-2 shrink-0"
               >
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold">{s.sessionDate}</span>
-                  <Badge
-                    variant={isSelected ? "outline" : s.status === "ACTIVE" ? "default" : "secondary"}
-                    className={cn(
-                      "text-[9px] px-1 py-0 uppercase font-mono",
-                      isSelected && "border-primary-foreground/30 text-primary-foreground"
-                    )}
-                  >
-                    {s.status}
-                  </Badge>
-                </div>
-                <span
-                  className={cn(
-                    "text-[11px] font-normal",
-                    isSelected ? "text-primary-foreground/75" : "text-muted-foreground"
-                  )}
-                >
-                  {s.startTime} - {s.endTime} • {s.totalStudents} SV
+                <span className="font-mono font-semibold">{s.sessionDate}</span>
+                <span className="text-[11px] opacity-75">
+                  ({s.startTime.slice(0, 5)} - {s.endTime.slice(0, 5)})
                 </span>
+                <Badge
+                  variant={isSelected ? "outline" : "secondary"}
+                  className="text-[9px] px-1 py-0 uppercase font-mono"
+                >
+                  {s.status}
+                </Badge>
               </Button>
             );
           })}
         </div>
       )}
 
-      {/* Main Studio View: QR Code & Roll-Call Roster */}
+      {/* Studio View */}
       {activeSession ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column: Dynamic QR Studio */}
-          <div className="flex flex-col gap-4">
-            <Card className="p-4 shadow-2xs flex flex-col items-center text-center">
-              <div className="w-full flex items-center justify-between border-b border-border pb-3 mb-3">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Mã QR Điểm Danh Trực Tiếp
-                </span>
-                <Badge variant="outline" className="font-mono text-[10px]">
-                  {activeSession.sessionDate}
-                </Badge>
+        <div className="flex flex-col gap-5">
+          {/* Session Overview Stats Banner */}
+          <Card className="p-4 shadow-xs">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-base font-bold text-foreground">
+                    {activeSession.classroomCode} • Ca ngày {activeSession.sessionDate}
+                  </h2>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {activeSession.startTime} - {activeSession.endTime}
+                  </Badge>
+                  <Badge
+                    variant={activeSession.status === "ACTIVE" ? "default" : "secondary"}
+                    className="font-mono text-[10px] uppercase"
+                  >
+                    {activeSession.status}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Lớp: {activeSession.classroomName} • Sĩ số danh sách: {totalInSession} sinh viên
+                </p>
               </div>
 
-              {/* QR Code Display */}
-              {qrTokenData ? (
-                <div className="flex flex-col items-center gap-3.5 w-full">
-                  <div className="p-3 bg-white rounded-xl border border-border shadow-xs">
-                    <QrCodeView value={qrTokenData.qrToken} size={200} />
+              {/* Counters */}
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                    Có mặt
+                  </div>
+                  <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                    {presentCount}
+                  </div>
+                </div>
+
+                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                    Đi muộn
+                  </div>
+                  <div className="text-sm font-bold font-mono text-amber-600 dark:text-amber-400">
+                    {lateCount}
+                  </div>
+                </div>
+
+                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                    Vắng mặt
+                  </div>
+                  <div className="text-sm font-bold font-mono text-rose-600 dark:text-rose-400">
+                    {absentCount}
+                  </div>
+                </div>
+
+                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
+                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                    Có phép
+                  </div>
+                  <div className="text-sm font-bold font-mono text-muted-foreground">
+                    {excusedCount}
+                  </div>
+                </div>
+
+                <div className="px-3 py-1.5 rounded-lg bg-primary/10 text-center border border-primary/20">
+                  <div className="text-[10px] uppercase text-primary font-semibold">Tỷ lệ</div>
+                  <div className="text-sm font-bold font-mono text-primary">{attendanceRate}%</div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Mode Tabs: QR Studio vs Roll-Call Sheet */}
+          <div className="flex items-center justify-between border-b border-border">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStudioMode("qr")}
+                className={`py-2 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+                  studioMode === "qr"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <QrCode className="size-3.5" />
+                  Mã QR Động 30s Trực Tiếp
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStudioMode("roster")}
+                className={`py-2 px-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+                  studioMode === "roster"
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Users className="size-3.5" />
+                  Bảng Điểm Danh Thủ Công ({records.length})
+                </span>
+              </button>
+            </div>
+
+            {studioMode === "roster" && (
+              <div className="flex items-center gap-2 pb-1.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleMarkAllPresent}
+                  className="h-7 text-xs"
+                >
+                  <Check className="size-3 text-emerald-500" />
+                  Đánh dấu tất cả có mặt
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="default"
+                  size="sm"
+                  disabled={isSaving}
+                  onClick={handleSaveRecords}
+                  className="h-7 text-xs gap-1"
+                >
+                  <Save className="size-3" />
+                  {isSaving ? "Đang lưu..." : "Lưu điểm danh"}
+                </Button>
+              </div>
+            )}
+          </div>
+
+          {/* MODE 1: Dynamic QR Studio */}
+          {studioMode === "qr" && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left 2 Cols: QR Display Card */}
+              <Card className="lg:col-span-2 p-6 shadow-xs flex flex-col items-center text-center justify-between gap-6">
+                <div className="w-full flex items-center justify-between border-b border-border pb-3">
+                  <div className="flex items-center gap-2">
+                    <QrCode className="size-4 text-foreground" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-foreground">
+                      Mã QR Điểm Danh Lớp Học
+                    </span>
                   </div>
 
-                  {/* Circular Countdown Progress Ring */}
-                  <div className="flex items-center gap-3">
-                    <div className="relative size-10 flex items-center justify-center">
-                      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                        <path
-                          className="text-muted"
-                          strokeWidth="3.5"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                        <path
-                          className={qrSecondsLeft <= 5 ? "text-destructive" : "text-foreground"}
-                          strokeDasharray={`${(qrSecondsLeft / 30) * 100}, 100`}
-                          strokeWidth="3.5"
-                          strokeLinecap="round"
-                          stroke="currentColor"
-                          fill="none"
-                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                        />
-                      </svg>
-                      <span className="absolute font-mono font-bold text-xs tabular-nums text-foreground">
-                        {qrSecondsLeft}s
-                      </span>
-                    </div>
-
-                    <div className="text-left">
-                      <div className="text-xs font-semibold text-foreground">
-                        {qrSecondsLeft > 0 ? "Mã đang hiệu lực" : "Hết hạn"}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {autoRefreshQr ? "Tự động đổi mới 30s" : "Chế độ thủ công"}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Token String Preview with Copy */}
-                  <div className="w-full flex items-center gap-1.5 p-1.5 rounded-md bg-muted/50 border border-border">
-                    <input
-                      type="text"
-                      readOnly
-                      value={qrTokenData.qrToken}
-                      className="flex-1 bg-transparent font-mono text-[11px] text-muted-foreground select-all truncate px-1"
-                    />
+                  <div className="flex items-center gap-2">
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        navigator.clipboard.writeText(qrTokenData.qrToken);
-                        toast.success("Đã sao chép mã Token vào clipboard!", "Đã sao chép");
-                      }}
-                      className="h-6 text-[10px] px-2"
+                      onClick={() => refreshDynamicQr(activeSession.id)}
+                      className="h-7 px-2 text-[11px] gap-1"
                     >
-                      <Copy className="size-3" data-icon="inline-start" />
-                      Copy
+                      <RefreshCw className="size-3" />
+                      Làm mới mã
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsProjectorMode(!isProjectorMode)}
+                      className="size-7"
+                      title="Chế độ máy chiếu toàn màn hình"
+                    >
+                      <Maximize2 className="size-3.5" />
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="py-10 flex flex-col items-center justify-center gap-2">
-                  <div className="size-12 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
-                    <Zap className="size-6" />
+
+                {/* QR Code Canvas */}
+                {qrTokenData ? (
+                  <div className="flex flex-col items-center gap-4 my-2">
+                    <div className="p-4 bg-white rounded-xl border border-border shadow-xs">
+                      <QrCodeView value={qrTokenData.qrToken} size={220} />
+                    </div>
+
+                    {/* Countdown indicator */}
+                    <div className="flex items-center gap-2 text-xs">
+                      <Clock className="size-3.5 text-muted-foreground" />
+                      <span className="text-muted-foreground">Mã tự động đổi sau:</span>
+                      <Badge
+                        variant={qrSecondsLeft <= 5 ? "destructive" : "secondary"}
+                        className="font-mono text-xs font-bold px-2 py-0.5"
+                      >
+                        {qrSecondsLeft} giây
+                      </Badge>
+                    </div>
+
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      Yêu cầu sinh viên mở camera hoặc ứng dụng sinh viên để quét mã QR hiển thị trên màn hình.
+                    </p>
                   </div>
-                  <span className="text-xs text-muted-foreground">
-                    Chưa kích hoạt mã QR cho ca học này
-                  </span>
-                </div>
-              )}
-
-              {/* Action Buttons for QR */}
-              <div className="w-full mt-4 flex flex-col gap-2 pt-3 border-t border-border">
-                <Button
-                  type="button"
-                  onClick={handleGenerateQr}
-                  className="w-full text-xs"
-                >
-                  <RefreshCw className="size-3.5" data-icon="inline-start" />
-                  {qrTokenData ? "Làm Mới Mã QR (Reset 30s)" : "Tạo & Mở Dynamic QR"}
-                </Button>
-
-                {qrTokenData && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsProjectorMode(true)}
-                    className="w-full text-xs"
-                  >
-                    <Maximize2 className="size-3.5" data-icon="inline-start" />
-                    Chế Độ Máy Chiếu Giảng Đường
-                  </Button>
+                ) : (
+                  <div className="p-12 text-center text-xs text-muted-foreground">
+                    Đang tạo mã QR động...
+                  </div>
                 )}
 
-                <label className="flex items-center justify-center gap-2 text-xs text-muted-foreground cursor-pointer pt-1">
-                  <input
-                    type="checkbox"
-                    checked={autoRefreshQr}
-                    onChange={(e) => setAutoRefreshQr(e.target.checked)}
-                    className="size-3.5 rounded border-border text-foreground focus:ring-ring"
-                  />
-                  <span>Tự động quay vòng mã mỗi 30s</span>
-                </label>
-              </div>
-            </Card>
-
-            {/* Student Check-In Simulator */}
-            <Card className="p-4 shadow-2xs flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                  <Smartphone className="size-3.5 text-muted-foreground" />
-                  Mô phỏng Quét QR (Check-in Test)
-                </span>
-                <Badge variant="outline" className="text-[10px] font-mono">
-                  /check-in
-                </Badge>
-              </div>
-              <form onSubmit={handleStudentCheckIn} className="flex flex-col gap-2">
-                <Input
-                  type="text"
-                  required
-                  value={checkInQrToken}
-                  onChange={(e) => setCheckInQrToken(e.target.value)}
-                  placeholder="Dán mã QR Token tại đây..."
-                  className="h-8 text-xs font-mono bg-background"
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  variant="secondary"
-                  disabled={isCheckingIn || !checkInQrToken.trim()}
-                  className="w-full text-xs"
-                >
-                  {isCheckingIn ? "Đang xử lý..." : "Mô Phỏng Sinh Viên Quét Mã"}
-                </Button>
-              </form>
-            </Card>
-          </div>
-
-          {/* Right 2 Columns: Live Roll-Call Roster Table */}
-          <div className="lg:col-span-2 flex flex-col gap-4">
-            <Card className="p-4 shadow-2xs flex flex-col gap-4">
-              {/* Counters & Action Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <Badge variant="secondary" className="text-xs">
-                    Có mặt: {presentCount}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Đi muộn: {lateCount}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Vắng: {absentCount}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Có phép: {excusedCount}
-                  </Badge>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
+                {/* Bottom Quick Switch */}
+                <div className="w-full pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    Trạng thái ca học:{" "}
+                    <strong className="text-foreground uppercase">{activeSession.status}</strong>
+                  </span>
+                  <button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={handleMarkAllPresent}
-                    className="text-xs"
+                    onClick={() => setStudioMode("roster")}
+                    className="text-foreground hover:underline font-semibold"
                   >
-                    Tất cả Có mặt
-                  </Button>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={handleSaveRecords}
-                    disabled={isSaving}
-                    className="text-xs"
-                  >
-                    <Save className="size-3.5" data-icon="inline-start" />
-                    {isSaving ? "Đang lưu..." : "Lưu Kết Quả"}
-                  </Button>
+                    Xem danh sách điểm danh &rarr;
+                  </button>
                 </div>
-              </div>
+              </Card>
 
-              {/* Roster Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
-                    <tr>
-                      <th className="p-2.5 font-medium">Mã SV</th>
-                      <th className="p-2.5 font-medium">Họ và Tên</th>
-                      <th className="p-2.5 font-medium">Thời Gian Quét</th>
-                      <th className="p-2.5 font-medium">Trạng Thái</th>
-                      <th className="p-2.5 font-medium">Ghi Chú</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {records.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="p-8 text-center text-muted-foreground italic">
-                          Chưa có sinh viên trong ca học này. Hãy ghi danh sinh viên vào lớp học.
-                        </td>
-                      </tr>
+              {/* Right Col: Live Activity Feed & Simulator */}
+              <div className="flex flex-col gap-4">
+                {/* Live Activity Feed */}
+                <Card className="p-4 shadow-xs flex flex-col gap-3">
+                  <div className="flex items-center justify-between border-b border-border pb-2.5">
+                    <span className="text-xs font-bold text-foreground">
+                      Sinh Viên Đã Điểm Danh ({presentCount + lateCount})
+                    </span>
+                    <Badge variant="outline" className="text-[10px] font-mono">
+                      Real-time
+                    </Badge>
+                  </div>
+
+                  <div className="max-h-56 overflow-y-auto space-y-2">
+                    {records.filter((r) => r.status === "PRESENT" || r.status === "LATE").length ===
+                    0 ? (
+                      <div className="p-6 text-center text-xs text-muted-foreground italic">
+                        Chưa có sinh viên nào check-in trong ca học này.
+                      </div>
                     ) : (
-                      records.map((r) => {
+                      records
+                        .filter((r) => r.status === "PRESENT" || r.status === "LATE")
+                        .map((r) => (
+                          <div
+                            key={r.id}
+                            className="p-2 rounded-lg bg-muted/50 border border-border flex items-center justify-between text-xs"
+                          >
+                            <div>
+                              <div className="font-semibold text-foreground">{r.studentName}</div>
+                              <div className="text-[11px] text-muted-foreground font-mono">
+                                {r.studentCode}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <Badge
+                                variant={r.status === "PRESENT" ? "default" : "secondary"}
+                                className="text-[9px] uppercase font-mono"
+                              >
+                                {r.status}
+                              </Badge>
+                              {r.checkInTime && (
+                                <div className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                  {new Date(r.checkInTime).toLocaleTimeString("vi-VN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))
+                    )}
+                  </div>
+                </Card>
+
+                {/* Simulator Card: Check-in testing */}
+                <Card className="p-4 shadow-xs flex flex-col gap-3">
+                  <div className="flex items-center gap-1.5 border-b border-border pb-2.5">
+                    <Smartphone className="size-3.5 text-muted-foreground" />
+                    <span className="text-xs font-bold text-foreground">
+                      Mô Phỏng Quét Check-in
+                    </span>
+                  </div>
+
+                  <form onSubmit={handleStudentCheckIn} className="flex flex-col gap-2.5">
+                    <p className="text-[11px] text-muted-foreground">
+                      Dùng để kiểm thử endpoint <code>POST /sessions/{activeSession.id}/check-in</code>:
+                    </p>
+                    <Input
+                      type="text"
+                      placeholder="Mã QR token..."
+                      value={checkInQrToken}
+                      onChange={(e) => setCheckInQrToken(e.target.value)}
+                      className="h-8 text-xs font-mono bg-background"
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={isCheckingIn || !checkInQrToken.trim()}
+                      className="text-xs gap-1"
+                    >
+                      <CheckCircle2 className="size-3.5" />
+                      {isCheckingIn ? "Đang gửi check-in..." : "Gửi Check-In Thử Nghiệm"}
+                    </Button>
+                  </form>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {/* MODE 2: Manual Roll-Call Sheet */}
+          {studioMode === "roster" && (
+            <Card className="shadow-xs overflow-hidden">
+              <div className="p-3 border-b border-border bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder="Tìm sinh viên theo tên hoặc MSSV..."
+                    value={rosterSearch}
+                    onChange={(e) => setRosterSearch(e.target.value)}
+                    className="pl-8 h-8 text-xs bg-background"
+                  />
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Hiển thị <strong>{filteredRecords.length}</strong> / {records.length} sinh viên
+                </div>
+              </div>
+
+              {filteredRecords.length === 0 ? (
+                <div className="p-12 text-center text-xs text-muted-foreground italic">
+                  Không tìm thấy sinh viên nào trong danh sách ca học.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border bg-muted/40 font-semibold text-muted-foreground">
+                        <th className="py-2.5 px-4 w-12 text-center">STT</th>
+                        <th className="py-2.5 px-4 font-mono">Mã SV</th>
+                        <th className="py-2.5 px-4">Họ và tên</th>
+                        <th className="py-2.5 px-4">Trạng thái điểm danh</th>
+                        <th className="py-2.5 px-4">Giờ quét</th>
+                        <th className="py-2.5 px-4">Ghi chú</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredRecords.map((r, idx) => {
                         const currentStatus = localRecords[r.id]?.status || r.status;
-                        const currentRemarks = localRecords[r.id]?.remarks ?? r.remarks ?? "";
+                        const currentRemarks =
+                          localRecords[r.id]?.remarks !== undefined
+                            ? localRecords[r.id].remarks
+                            : r.remarks || "";
 
                         return (
                           <tr key={r.id} className="hover:bg-muted/30 transition-colors">
-                            <td className="p-2.5 font-mono font-medium text-foreground">
+                            <td className="py-2.5 px-4 text-center text-muted-foreground">{idx + 1}</td>
+                            <td className="py-2.5 px-4 font-mono font-semibold text-foreground">
                               {r.studentCode}
                             </td>
-                            <td className="p-2.5 font-medium text-foreground">
-                              {r.studentName}
-                            </td>
-                            <td className="p-2.5 text-[11px] text-muted-foreground font-mono">
-                              {r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString() : "-"}
-                            </td>
-                            <td className="p-2.5">
-                              {/* Status Toggle Buttons */}
-                              <div className="inline-flex rounded-md p-0.5 bg-muted border border-border">
+                            <td className="py-2.5 px-4 font-medium text-foreground">{r.studentName}</td>
+                            <td className="py-2.5 px-4">
+                              <div className="flex items-center gap-1">
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "PRESENT")}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
+                                  className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "PRESENT"
-                                      ? "bg-background text-foreground shadow-2xs font-bold"
-                                      : "text-muted-foreground hover:text-foreground"
-                                  )}
+                                      ? "bg-emerald-600 text-white shadow-xs"
+                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                  }`}
                                 >
                                   Có mặt
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "LATE")}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
+                                  className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "LATE"
-                                      ? "bg-background text-foreground shadow-2xs font-bold"
-                                      : "text-muted-foreground hover:text-foreground"
-                                  )}
+                                      ? "bg-amber-600 text-white shadow-xs"
+                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                  }`}
                                 >
-                                  Muộn
+                                  Đi muộn
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "ABSENT")}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
+                                  className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "ABSENT"
-                                      ? "bg-background text-foreground shadow-2xs font-bold"
-                                      : "text-muted-foreground hover:text-foreground"
-                                  )}
+                                      ? "bg-rose-600 text-white shadow-xs"
+                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                  }`}
                                 >
-                                  Vắng
+                                  Vắng mặt
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "EXCUSED")}
-                                  className={cn(
-                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
+                                  className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "EXCUSED"
-                                      ? "bg-background text-foreground shadow-2xs font-bold"
-                                      : "text-muted-foreground hover:text-foreground"
-                                  )}
+                                      ? "bg-slate-700 text-white shadow-xs"
+                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                  }`}
                                 >
-                                  Phép
+                                  Có phép
                                 </button>
                               </div>
                             </td>
-                            <td className="p-2.5">
+                            <td className="py-2.5 px-4 font-mono text-[11px] text-muted-foreground">
+                              {r.checkInTime
+                                ? new Date(r.checkInTime).toLocaleTimeString("vi-VN", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })
+                                : "—"}
+                            </td>
+                            <td className="py-2.5 px-4">
                               <Input
                                 type="text"
+                                placeholder="Ghi chú lý do..."
                                 value={currentRemarks}
                                 onChange={(e) => handleRemarksChange(r.id, e.target.value)}
-                                placeholder="Ghi chú..."
-                                className="h-7 text-[11px] bg-background"
+                                className="h-7 text-xs bg-background max-w-xs"
                               />
                             </td>
                           </tr>
                         );
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </Card>
-          </div>
+          )}
         </div>
       ) : (
-        <Card className="p-12 text-center shadow-2xs flex flex-col items-center gap-3">
-          <div className="size-12 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
-            <Calendar className="size-6" />
+        /* Empty State when no session available */
+        <Card className="p-12 text-center flex flex-col items-center gap-3 shadow-xs">
+          <Calendar className="size-10 text-muted-foreground stroke-1" />
+          <div className="space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {currentClassroom
+                ? `Lớp ${currentClassroom.code} chưa có ca học nào`
+                : "Chưa chọn lớp học"}
+            </p>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              Tạo ca học mới để bắt đầu phát sinh mã QR điểm danh động hoặc thực hiện điểm danh danh sách.
+            </p>
           </div>
-          <h3 className="font-semibold text-sm text-foreground">
-            Chưa có ca học nào được chọn
-          </h3>
-          <p className="text-xs text-muted-foreground max-w-sm">
-            Hãy chọn một ca học ở thanh bên trên hoặc bấm &quot;Tạo Ca Học&quot; để mở studio điểm danh.
-          </p>
+          {selectedClassroomId && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setShowCreateSessionModal(true)}
+              className="gap-1.5 text-xs mt-1"
+            >
+              <Plus className="size-3.5" />
+              Tạo ca học ngay
+            </Button>
+          )}
         </Card>
       )}
 
-      {/* Fullscreen Projector Mode Modal */}
+      {/* Projector Fullscreen Modal */}
       {isProjectorMode && qrTokenData && activeSession && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 bg-background text-foreground flex flex-col p-8 overflow-y-auto"
-        >
-          {/* Top Bar of Projector */}
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <div className="flex items-center gap-3">
-              <span className="size-2.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-sm font-semibold text-foreground">
-                Chế Độ Máy Chiếu Giảng Đường • EduAttend Projector
-              </span>
-            </div>
+        <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-8">
+          <div className="absolute top-6 right-6">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setIsProjectorMode(false)}
+              className="gap-1 text-xs"
             >
-              <Minimize2 className="size-3.5" data-icon="inline-start" />
-              Thoát Máy Chiếu (ESC)
+              <Minimize2 className="size-4" />
+              Thoát toàn màn hình
             </Button>
           </div>
 
-          {/* Centered Large QR Screen */}
-          <div className="flex-1 flex flex-col items-center justify-center py-6 text-center gap-6">
-            <div className="flex flex-col gap-1">
-              <Badge variant="outline" className="font-mono text-xs font-bold mx-auto">
-                {currentClassroom?.code || activeSession.classroomCode}
+          <div className="flex flex-col items-center gap-6 max-w-lg text-center">
+            <div className="space-y-1.5">
+              <Badge variant="outline" className="font-mono text-sm uppercase px-3 py-1 font-bold">
+                {activeSession.classroomCode} • {activeSession.classroomName}
               </Badge>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
-                {currentClassroom?.name || activeSession.classroomName}
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Ngày {activeSession.sessionDate} • Ca: {activeSession.startTime} - {activeSession.endTime}
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                Quét Mã QR Để Điểm Danh
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Ca học ngày {activeSession.sessionDate} ({activeSession.startTime} - {activeSession.endTime})
               </p>
             </div>
 
-            {/* Giant QR Code */}
-            <div className="p-6 rounded-2xl bg-white text-black border border-border shadow-2xl flex flex-col items-center">
-              <QrCodeView value={qrTokenData.qrToken} size={340} />
+            <div className="p-6 bg-white rounded-2xl border-2 border-border shadow-xl">
+              <QrCodeView value={qrTokenData.qrToken} size={320} />
             </div>
 
-            {/* Large Countdown & Counter */}
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-3">
-                <span className="text-4xl font-extrabold font-mono text-foreground tabular-nums">
-                  {qrSecondsLeft}s
-                </span>
-                <span className="text-xs text-muted-foreground max-w-[130px] text-left">
-                  Mã QR tự động đổi mới sau mỗi 30 giây
-                </span>
-              </div>
-
-              <div className="h-8 w-px bg-border" />
-
-              <div className="flex items-center gap-3">
-                <span className="text-4xl font-extrabold font-mono text-foreground tabular-nums">
-                  {presentCount + lateCount} / {records.length}
-                </span>
-                <span className="text-xs text-muted-foreground text-left">
-                  Sinh viên đã quét mã điểm danh thành công
-                </span>
-              </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Mã QR đổi mới sau:</span>
+              <Badge
+                variant={qrSecondsLeft <= 5 ? "destructive" : "secondary"}
+                className="font-mono text-base font-bold px-3 py-1"
+              >
+                {qrSecondsLeft}s
+              </Badge>
             </div>
           </div>
         </div>
       )}
 
-      {/* Create Session Modal */}
-      {showCreateSessionModal && (
+      {/* Modal: Tạo Ca Học (POST /classrooms/{classroomId}/sessions) */}
+      {showCreateSessionModal && selectedClassroomId && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
         >
-          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+          <Card className="w-full max-w-md shadow-xl p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-bold text-sm text-foreground">
-                Tạo Ca Học / Ca Điểm Danh Mới
-              </h3>
-              <Button
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4 text-foreground" />
+                <h3 className="text-sm font-bold text-foreground">
+                  Tạo Ca Học Mới
+                </h3>
+              </div>
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
                 onClick={() => setShowCreateSessionModal(false)}
-                className="size-7"
-                aria-label="Đóng"
+                className="text-muted-foreground hover:text-foreground text-xs"
               >
-                <X className="size-4" />
-              </Button>
+                Đóng
+              </button>
             </div>
 
-            <form onSubmit={handleCreateSession} className="flex flex-col gap-3">
+            <form onSubmit={handleCreateSession} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-foreground">
-                  Ngày Học *
+                <label className="text-xs font-medium text-foreground" htmlFor="session-date-modal">
+                  Ngày học *
                 </label>
                 <Input
+                  id="session-date-modal"
                   type="date"
                   required
                   value={sessionForm.sessionDate}
                   onChange={(e) => setSessionForm({ ...sessionForm, sessionDate: e.target.value })}
-                  className="h-8 text-xs bg-background"
+                  className="h-8 text-xs font-mono bg-background"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-foreground">
-                    Giờ Bắt Đầu *
+                  <label className="text-xs font-medium text-foreground" htmlFor="session-start-modal">
+                    Giờ bắt đầu *
                   </label>
                   <Input
+                    id="session-start-modal"
                     type="time"
+                    step="1"
                     required
                     value={sessionForm.startTime}
                     onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })}
@@ -844,11 +979,13 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-foreground">
-                    Giờ Kết Thúc *
+                  <label className="text-xs font-medium text-foreground" htmlFor="session-end-modal">
+                    Giờ kết thúc *
                   </label>
                   <Input
+                    id="session-end-modal"
                     type="time"
+                    step="1"
                     required
                     value={sessionForm.endTime}
                     onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
@@ -857,21 +994,18 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => setShowCreateSessionModal(false)}
+                  className="text-xs"
                 >
-                  Hủy Bỏ
+                  Hủy
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Đang tạo..." : "Xác Nhận Tạo Ca"}
+                <Button type="submit" size="sm" disabled={isLoading} className="text-xs">
+                  {isLoading ? "Đang tạo..." : "Xác nhận tạo ca học"}
                 </Button>
               </div>
             </form>

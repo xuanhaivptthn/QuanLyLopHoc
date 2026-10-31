@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useDeferredValue } from "react";
-import { Student } from "@/types";
+import { Student, Classroom, Enrollment } from "@/types";
 import { fetchApi } from "@/lib/api-client";
 import { useToast } from "@/lib/toast";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,10 +12,8 @@ import {
   UserPlus,
   Download,
   Search,
-  Copy,
-  X,
+  BookOpen,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 interface StudentsSectionProps {
   showAddModalDirectly?: boolean;
@@ -30,9 +27,15 @@ export function StudentsSection({
   const toast = useToast();
 
   const [students, setStudents] = useState<Student[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(showAddModalDirectly);
+
+  // Quick enroll modal state
+  const [enrollTargetStudent, setEnrollTargetStudent] = useState<Student | null>(null);
+  const [selectedClassroomIdToEnroll, setSelectedClassroomIdToEnroll] = useState("");
+  const [isEnrolling, setIsEnrolling] = useState(false);
 
   const deferredSearch = useDeferredValue(searchTerm);
 
@@ -50,11 +53,18 @@ export function StudentsSection({
     }
   }, [showAddModalDirectly]);
 
-  const loadStudents = useCallback(async () => {
+  const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const data = await fetchApi<Student[]>("/students");
-      setStudents(data || []);
+      const [stData, clsData] = await Promise.all([
+        fetchApi<Student[]>("/students"),
+        fetchApi<Classroom[]>("/classrooms"),
+      ]);
+      setStudents(stData || []);
+      setClassrooms(clsData || []);
+      if (clsData && clsData.length > 0) {
+        setSelectedClassroomIdToEnroll(clsData[0].id);
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Lỗi khi tải danh sách sinh viên", "Lỗi");
     } finally {
@@ -63,8 +73,8 @@ export function StudentsSection({
   }, [toast]);
 
   useEffect(() => {
-    loadStudents();
-  }, [loadStudents]);
+    loadData();
+  }, [loadData]);
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,15 +89,44 @@ export function StudentsSection({
           phone: formData.phone.trim() || undefined,
         }),
       });
-      toast.success(`Đã thêm sinh viên: ${res.fullName} (${res.studentCode})`, "Tạo sinh viên thành công");
+      toast.success(
+        `Đã thêm sinh viên: ${res.fullName} (${res.studentCode})`,
+        "Tạo sinh viên thành công"
+      );
       setFormData({ studentCode: "", fullName: "", email: "", phone: "" });
       setShowAddModal(false);
       if (onCloseAddModal) onCloseAddModal();
-      loadStudents();
+      loadData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Không thể tạo hồ sơ sinh viên", "Lỗi");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Quick enroll student into chosen classroom
+  const handleQuickEnroll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!enrollTargetStudent || !selectedClassroomIdToEnroll) return;
+    setIsEnrolling(true);
+    try {
+      await fetchApi<Enrollment>(`/classrooms/${selectedClassroomIdToEnroll}/students`, {
+        method: "POST",
+        body: JSON.stringify({ studentId: enrollTargetStudent.id }),
+      });
+      const cls = classrooms.find((c) => c.id === selectedClassroomIdToEnroll);
+      toast.success(
+        `Đã ghi danh ${enrollTargetStudent.fullName} vào lớp ${cls?.code || ""}`,
+        "Ghi danh thành công"
+      );
+      setEnrollTargetStudent(null);
+    } catch (err: unknown) {
+      toast.error(
+        err instanceof Error ? err.message : "Sinh viên có thể đã ghi danh vào lớp này rồi",
+        "Lỗi ghi danh"
+      );
+    } finally {
+      setIsEnrolling(false);
     }
   };
 
@@ -105,7 +144,10 @@ export function StudentsSection({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", `danh_sach_sinh_vien_${new Date().toISOString().split("T")[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `danh_sach_sinh_vien_${new Date().toISOString().split("T")[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -117,238 +159,226 @@ export function StudentsSection({
     return (
       s.studentCode.toLowerCase().includes(q) ||
       s.fullName.toLowerCase().includes(q) ||
-      s.email.toLowerCase().includes(q)
+      s.email.toLowerCase().includes(q) ||
+      (s.phone && s.phone.includes(q))
     );
   });
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <Card className="p-4 shadow-2xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <Users className="size-5 text-foreground" />
-              <h2 className="text-base font-bold tracking-tight text-foreground">
-                Danh Bạ Hồ Sơ Sinh Viên
-              </h2>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Quản lý mã định danh, thông tin liên lạc và tài khoản điểm danh của người học
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleExportCsv}
-              className="text-xs"
-            >
-              <Download className="size-3.5" data-icon="inline-start" />
-              Xuất CSV
-            </Button>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setShowAddModal(true)}
-              className="text-xs"
-            >
-              <UserPlus className="size-3.5" data-icon="inline-start" />
-              Thêm Sinh Viên
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      {/* Search & Stats Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="relative flex-1 max-w-md">
-          <Search className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-          <Input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Mã SV, họ tên, email..."
-            className="pl-9 h-8 text-xs bg-background"
-          />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            Danh Bạ Sinh Viên Hệ Thống
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Quản lý hồ sơ mã định danh, email và ghi danh sinh viên vào các lớp học
+          </p>
         </div>
 
-        <div className="text-xs text-muted-foreground font-medium">
-          Hiển thị <span className="font-bold text-foreground">{filteredStudents.length}</span> / {students.length} sinh viên
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportCsv}
+            className="text-xs gap-1"
+          >
+            <Download className="size-3.5" />
+            Xuất CSV
+          </Button>
+
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setShowAddModal(true)}
+            className="text-xs gap-1"
+          >
+            <UserPlus className="size-3.5" />
+            Thêm Sinh Viên
+          </Button>
         </div>
       </div>
 
-      {/* Students Table */}
-      <Card className="shadow-2xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
-              <tr>
-                <th className="p-3 font-medium">Mã SV</th>
-                <th className="p-3 font-medium">Họ và Tên</th>
-                <th className="p-3 font-medium">Email Sinh Viên</th>
-                <th className="p-3 font-medium">Số Điện Thoại</th>
-                <th className="p-3 font-medium">UUID Hệ Thống</th>
-                <th className="p-3 text-right font-medium">Thao Tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredStudents.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
-                    Không tìm thấy sinh viên nào. Nhấn &quot;Thêm Sinh Viên&quot; để bổ sung hồ sơ mới.
-                  </td>
+      {/* Search Input Bar */}
+      <div className="relative max-w-md">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Tìm theo MSSV, Họ tên, Email, Số điện thoại..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 h-9 text-xs bg-background"
+        />
+      </div>
+
+      {/* Students Data Table */}
+      <Card className="shadow-xs overflow-hidden">
+        {isLoading && students.length === 0 ? (
+          <div className="p-12 text-center text-xs text-muted-foreground">
+            Đang tải dữ liệu danh bạ...
+          </div>
+        ) : filteredStudents.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center gap-3">
+            <Users className="size-8 text-muted-foreground stroke-1" />
+            <p className="text-sm font-semibold text-foreground">
+              {searchTerm ? "Không tìm thấy sinh viên nào phù hợp" : "Danh bạ chưa có sinh viên"}
+            </p>
+            <p className="text-xs text-muted-foreground max-w-sm">
+              {searchTerm
+                ? "Thử thay đổi từ khóa tìm kiếm MSSV hoặc họ tên."
+                : "Thêm sinh viên vào danh bạ để quản lý và ghi danh vào các lớp học."}
+            </p>
+            {!searchTerm && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => setShowAddModal(true)}
+                className="gap-1.5 text-xs mt-1"
+              >
+                <UserPlus className="size-3.5" />
+                Thêm sinh viên mới
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-border bg-muted/40 font-semibold text-muted-foreground">
+                  <th className="py-2.5 px-4 w-12 text-center">STT</th>
+                  <th className="py-2.5 px-4 font-mono">Mã SV (MSSV)</th>
+                  <th className="py-2.5 px-4">Họ và tên</th>
+                  <th className="py-2.5 px-4">Email</th>
+                  <th className="py-2.5 px-4">Số điện thoại</th>
+                  <th className="py-2.5 px-4">Ngày tạo</th>
+                  <th className="py-2.5 px-4 text-right">Ghi danh lớp</th>
                 </tr>
-              ) : (
-                filteredStudents.map((st) => (
+              </thead>
+              <tbody className="divide-y divide-border">
+                {filteredStudents.map((st, idx) => (
                   <tr key={st.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-mono font-medium text-foreground">
+                    <td className="py-2.5 px-4 text-center text-muted-foreground">{idx + 1}</td>
+                    <td className="py-2.5 px-4 font-mono font-bold text-foreground">
                       {st.studentCode}
                     </td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <div className="size-6 rounded-full bg-muted text-foreground flex items-center justify-center font-bold text-[10px] shrink-0 border border-border">
-                          {st.fullName ? st.fullName.charAt(0) : "S"}
-                        </div>
-                        <span className="font-medium text-foreground">
-                          {st.fullName}
-                        </span>
-                      </div>
+                    <td className="py-2.5 px-4 font-medium text-foreground">{st.fullName}</td>
+                    <td className="py-2.5 px-4 text-muted-foreground font-mono">{st.email}</td>
+                    <td className="py-2.5 px-4 text-muted-foreground font-mono">
+                      {st.phone || "—"}
                     </td>
-                    <td className="p-3 font-mono text-muted-foreground">
-                      {st.email}
+                    <td className="py-2.5 px-4 text-muted-foreground font-mono text-[11px]">
+                      {st.createdAt ? new Date(st.createdAt).toLocaleDateString("vi-VN") : "—"}
                     </td>
-                    <td className="p-3 text-muted-foreground">
-                      {st.phone || "-"}
-                    </td>
-                    <td className="p-3 font-mono text-[11px] text-muted-foreground max-w-[140px] truncate" title={st.id}>
-                      {st.id}
-                    </td>
-                    <td className="p-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="py-2.5 px-4 text-right">
+                      {classrooms.length > 0 && (
                         <Button
                           type="button"
-                          variant="ghost"
+                          variant="outline"
                           size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(st.studentCode);
-                            toast.success(`Đã chép mã SV: ${st.studentCode}`, "Sao chép");
-                          }}
-                          className="h-6 text-[10px] px-2"
+                          onClick={() => setEnrollTargetStudent(st)}
+                          className="h-7 px-2 text-[11px] gap-1"
                         >
-                          <Copy className="size-3" data-icon="inline-start" />
-                          Mã SV
+                          <BookOpen className="size-3" />
+                          Ghi danh
                         </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            navigator.clipboard.writeText(st.id);
-                            toast.success(`Đã chép UUID của ${st.fullName}`, "Sao chép");
-                          }}
-                          className="h-6 text-[10px] px-2"
-                        >
-                          <Copy className="size-3" data-icon="inline-start" />
-                          UUID
-                        </Button>
-                      </div>
+                      )}
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
 
-      {/* Add Student Modal */}
+      {/* Modal: Thêm Sinh Viên Mới (POST /students) */}
       {showAddModal && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
         >
-          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+          <Card className="w-full max-w-md shadow-xl p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-border pb-3">
-              <h3 className="font-bold text-sm text-foreground">
-                Thêm Hồ Sơ Sinh Viên Mới
-              </h3>
-              <Button
+              <div className="flex items-center gap-2">
+                <UserPlus className="size-4 text-foreground" />
+                <h3 className="text-sm font-bold text-foreground">Thêm Sinh Viên Mới</h3>
+              </div>
+              <button
                 type="button"
-                variant="ghost"
-                size="icon"
                 onClick={() => {
                   setShowAddModal(false);
                   if (onCloseAddModal) onCloseAddModal();
                 }}
-                className="size-7"
-                aria-label="Đóng"
+                className="text-muted-foreground hover:text-foreground text-xs"
               >
-                <X className="size-4" />
-              </Button>
+                Đóng
+              </button>
             </div>
 
-            <form onSubmit={handleCreateStudent} className="flex flex-col gap-3">
+            <form onSubmit={handleCreateStudent} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-foreground">
-                  Mã Số Sinh Viên (MSSV) *
+                <label className="text-xs font-medium text-foreground" htmlFor="student-code">
+                  Mã sinh viên (MSSV) *
                 </label>
                 <Input
+                  id="student-code"
                   type="text"
                   required
                   value={formData.studentCode}
                   onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
-                  placeholder="VD: 20261234"
+                  placeholder="VD: 20020001"
                   className="h-8 text-xs font-mono uppercase bg-background"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-foreground">
-                  Họ và Tên *
+                <label className="text-xs font-medium text-foreground" htmlFor="student-name">
+                  Họ và tên *
                 </label>
                 <Input
+                  id="student-name"
                   type="text"
                   required
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  placeholder="VD: Nguyễn Văn Anh"
+                  placeholder="VD: Nguyễn Văn Nam"
                   className="h-8 text-xs bg-background"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-foreground">
-                  Email Sinh Viên *
+                <label className="text-xs font-medium text-foreground" htmlFor="student-email">
+                  Địa chỉ Email *
                 </label>
                 <Input
+                  id="student-email"
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="anh.nv26@sis.hust.edu.vn"
-                  className="h-8 text-xs font-mono bg-background"
+                  placeholder="nam.nv@school.edu.vn"
+                  className="h-8 text-xs bg-background"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-foreground">
-                  Số Điện Thoại (Tùy chọn)
+                <label className="text-xs font-medium text-foreground" htmlFor="student-phone">
+                  Số điện thoại
                 </label>
                 <Input
+                  id="student-phone"
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="0987654321"
+                  placeholder="0912345678"
                   className="h-8 text-xs font-mono bg-background"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
                 <Button
                   type="button"
                   variant="outline"
@@ -357,15 +387,79 @@ export function StudentsSection({
                     setShowAddModal(false);
                     if (onCloseAddModal) onCloseAddModal();
                   }}
+                  className="text-xs"
                 >
-                  Hủy Bỏ
+                  Hủy
                 </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isLoading}
+                <Button type="submit" size="sm" disabled={isLoading} className="text-xs">
+                  {isLoading ? "Đang lưu..." : "Xác nhận thêm"}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
+
+      {/* Modal: Ghi Danh Nhanh Vào Lớp (POST /classrooms/{id}/students) */}
+      {enrollTargetStudent && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs"
+        >
+          <Card className="w-full max-w-md shadow-xl p-6 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="size-4 text-foreground" />
+                <h3 className="text-sm font-bold text-foreground">Ghi Danh Vào Lớp Học</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEnrollTargetStudent(null)}
+                className="text-muted-foreground hover:text-foreground text-xs"
+              >
+                Đóng
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickEnroll} className="flex flex-col gap-3.5">
+              <div className="p-3 bg-muted/40 rounded-lg border border-border text-xs space-y-1">
+                <div className="text-muted-foreground">Sinh viên được chọn:</div>
+                <div className="font-bold text-foreground">{enrollTargetStudent.fullName}</div>
+                <div className="font-mono text-muted-foreground text-[11px]">
+                  MSSV: {enrollTargetStudent.studentCode} • {enrollTargetStudent.email}
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
+                  Chọn lớp học muốn ghi danh:
+                </label>
+                <select
+                  value={selectedClassroomIdToEnroll}
+                  onChange={(e) => setSelectedClassroomIdToEnroll(e.target.value)}
+                  className="h-8 px-2.5 rounded-md border border-border bg-background text-foreground text-xs"
                 >
-                  {isLoading ? "Đang lưu..." : "Xác Nhận Thêm"}
+                  {classrooms.map((cls) => (
+                    <option key={cls.id} value={cls.id}>
+                      {cls.code} - {cls.name} ({cls.semester})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEnrollTargetStudent(null)}
+                  className="text-xs"
+                >
+                  Hủy
+                </Button>
+                <Button type="submit" size="sm" disabled={isEnrolling} className="text-xs">
+                  {isEnrolling ? "Đang ghi danh..." : "Xác nhận ghi danh"}
                 </Button>
               </div>
             </form>

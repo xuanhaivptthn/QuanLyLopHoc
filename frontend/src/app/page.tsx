@@ -25,6 +25,7 @@ function AppContent() {
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<AttendanceSession[]>([]);
   const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
+  const [targetSessionId, setTargetSessionId] = useState<string | undefined>(undefined);
 
   // UI state
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -123,7 +124,7 @@ function AppContent() {
       case "students":
         return "Hồ Sơ Sinh Viên";
       case "org":
-        return "Tổ Chức";
+        return "Tổ Chức & Giảng Viên";
     }
   };
 
@@ -218,9 +219,10 @@ function AppContent() {
             <ClassroomsSection
               selectedClassroomId={selectedClassroom?.id}
               onSelectClassroom={handleSelectClassroom}
-              onNavigateToAttendance={(clsId) => {
+              onNavigateToAttendance={(clsId, sessId) => {
                 const found = classrooms.find((c) => c.id === clsId);
                 if (found) setSelectedClassroom(found);
+                setTargetSessionId(sessId);
                 handleTabChange("attendance");
               }}
               showCreateModalDirectly={showCreateClassModal}
@@ -229,7 +231,15 @@ function AppContent() {
           )}
 
           {activeTab === "attendance" && (
-            <AttendanceSection initialClassroomId={selectedClassroom?.id} />
+            <AttendanceSection
+              initialClassroomId={selectedClassroom?.id}
+              initialSessionId={targetSessionId}
+              onOpenClassroom={(clsId) => {
+                const found = classrooms.find((c) => c.id === clsId);
+                if (found) setSelectedClassroom(found);
+                handleTabChange("classrooms");
+              }}
+            />
           )}
 
           {activeTab === "students" && (
@@ -242,7 +252,6 @@ function AppContent() {
           {activeTab === "org" && <OrganizationSection />}
         </main>
       </div>
-
 
       {/* Dockable Developer API Inspector */}
       <ApiConsole />
