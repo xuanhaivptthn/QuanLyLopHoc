@@ -2,9 +2,10 @@
 
 import React from "react";
 import { useTheme } from "@/lib/theme";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Menu, Sun, Moon, FileText, Zap } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface TopBarProps {
   currentTabName: string;
@@ -62,22 +63,19 @@ export function TopBar({
         </Badge>
 
         {/* Swagger UI link */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="hidden lg:inline-flex text-xs"
-          render={
-            <a
-              href="http://localhost:8080/api/swagger-ui.html"
-              target="_blank"
-              rel="noreferrer"
-            />
-          }
+        <a
+          href="http://localhost:8080/api/swagger-ui.html"
+          target="_blank"
+          rel="noreferrer"
+          className={cn(
+            buttonVariants({ variant: "outline", size: "sm" }),
+            "hidden lg:inline-flex text-xs items-center gap-1.5"
+          )}
           title="Tài liệu OpenAPI / Swagger"
         >
           <FileText className="size-3.5" data-icon="inline-start" />
           Swagger Docs
-        </Button>
+        </a>
 
         {/* Dark/Light Theme Toggle */}
         <Button
