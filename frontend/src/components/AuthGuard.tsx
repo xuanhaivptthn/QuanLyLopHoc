@@ -23,8 +23,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 text-slate-500 text-xs">
-        <div className="w-6 h-6 border-2 border-slate-300 dark:border-slate-700 border-t-blue-600 rounded-full animate-spin mb-2" />
+      <div className="min-h-screen w-full flex flex-col items-center justify-center bg-background text-muted-foreground text-xs">
+        <div className="w-6 h-6 border-2 border-border border-t-primary rounded-full animate-spin mb-2" />
         <span>Đang tải...</span>
       </div>
     );

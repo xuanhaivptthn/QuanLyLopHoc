@@ -30,7 +30,7 @@ export function QrCodeView({
   if (!matrix || matrix.length === 0) {
     return (
       <div
-        className={`flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-400 text-xs ${className}`}
+        className={`flex items-center justify-center rounded-xl bg-muted text-muted-foreground text-xs ${className}`}
         style={{ width: size, height: size }}
       >
         Waiting for token...
@@ -56,7 +56,7 @@ export function QrCodeView({
 
   return (
     <div
-      className={`relative inline-flex items-center justify-center p-3 rounded-2xl bg-white shadow-md border border-slate-200/80 dark:border-slate-700/80 ${className}`}
+      className={`relative inline-flex items-center justify-center p-3 rounded-2xl bg-white shadow-md border border-border ${className}`}
     >
       <svg
         viewBox={`0 0 ${totalDim} ${totalDim}`}

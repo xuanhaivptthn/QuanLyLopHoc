@@ -588,7 +588,7 @@ export function AttendanceSection({
                 {/* QR Code Canvas */}
                 {qrTokenData ? (
                   <div className="flex flex-col items-center gap-4 my-2">
-                    <div className="p-4 bg-white rounded-xl border border-border shadow-xs">
+                    <div className="p-4 bg-card rounded-xl border border-border shadow-xs">
                       <QrCodeView value={qrTokenData.qrToken} size={220} />
                     </div>
 
@@ -813,7 +813,7 @@ export function AttendanceSection({
                                   onClick={() => handleStatusChange(r.id, "EXCUSED")}
                                   className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "EXCUSED"
-                                      ? "bg-slate-700 text-white shadow-xs"
+                                      ? "bg-secondary text-secondary-foreground shadow-xs ring-1 ring-border"
                                       : "bg-muted text-muted-foreground hover:text-foreground"
                                   }`}
                                 >
@@ -906,7 +906,7 @@ export function AttendanceSection({
               </p>
             </div>
 
-            <div className="p-6 bg-white rounded-2xl border-2 border-border shadow-xl">
+            <div className="p-6 bg-card rounded-2xl border-2 border-border shadow-xl">
               <QrCodeView value={qrTokenData.qrToken} size={320} />
             </div>
 
