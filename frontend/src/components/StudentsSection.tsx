@@ -12,9 +12,11 @@ import {
   Users,
   UserPlus,
   Download,
+  Upload,
   Search,
   BookOpen,
 } from "lucide-react";
+import { BulkAddStudentsModal } from "@/components/BulkAddStudentsModal";
 
 interface StudentsSectionProps {
   showAddModalDirectly?: boolean;
@@ -32,6 +34,7 @@ export function StudentsSection({
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddModal, setShowAddModal] = useState(showAddModalDirectly);
+  const [showBulkAddModal, setShowBulkAddModal] = useState(false);
 
   // Quick enroll modal state
   const [enrollTargetStudent, setEnrollTargetStudent] = useState<Student | null>(null);
@@ -165,6 +168,11 @@ export function StudentsSection({
     );
   });
 
+  const existingStudentCodes = React.useMemo(
+    () => new Set(students.map((s) => s.studentCode.toUpperCase())),
+    [students]
+  );
+
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
@@ -188,6 +196,17 @@ export function StudentsSection({
           >
             <Download className="size-3.5" />
             Xuất CSV
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setShowBulkAddModal(true)}
+            className="text-xs gap-1"
+          >
+            <Upload className="size-3.5" />
+            Thêm hàng loạt
           </Button>
 
           <Button
@@ -232,15 +251,27 @@ export function StudentsSection({
                 : "Thêm sinh viên vào danh bạ để quản lý và ghi danh vào các lớp học."}
             </p>
             {!searchTerm && (
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => setShowAddModal(true)}
-                className="gap-1.5 text-xs mt-1"
-              >
-                <UserPlus className="size-3.5" />
-                Thêm sinh viên mới
-              </Button>
+              <div className="flex items-center gap-2 mt-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => setShowAddModal(true)}
+                  className="gap-1.5 text-xs"
+                >
+                  <UserPlus className="size-3.5" />
+                  Thêm sinh viên mới
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowBulkAddModal(true)}
+                  className="gap-1.5 text-xs"
+                >
+                  <Upload className="size-3.5" />
+                  Thêm hàng loạt (CSV)
+                </Button>
+              </div>
             )}
           </div>
         ) : (
@@ -476,6 +507,14 @@ export function StudentsSection({
           </Card>
         </div>
       )}
+
+      {/* Modal: Thêm Sinh Viên Hàng Loạt (POST /students/bulk) */}
+      <BulkAddStudentsModal
+        isOpen={showBulkAddModal}
+        onClose={() => setShowBulkAddModal(false)}
+        onSuccess={loadData}
+        existingStudentCodes={existingStudentCodes}
+      />
     </div>
   );
 }

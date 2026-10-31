@@ -1,6 +1,8 @@
 package com.attendance.student.controller;
 
 import com.attendance.common.security.UserPrincipal;
+import com.attendance.student.dto.BulkCreateStudentRequest;
+import com.attendance.student.dto.BulkCreateStudentResponse;
 import com.attendance.student.dto.CreateStudentRequest;
 import com.attendance.student.dto.StudentResponse;
 import com.attendance.student.service.StudentService;
@@ -34,6 +36,15 @@ public class StudentController {
             @AuthenticationPrincipal UserPrincipal principal,
             @Valid @RequestBody CreateStudentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(studentService.createStudent(principal, request));
+    }
+
+    @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('CENTER_ADMIN', 'TEACHER')")
+    @Operation(summary = "Bulk create multiple students in the center or personal directory")
+    public ResponseEntity<BulkCreateStudentResponse> bulkCreateStudents(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @Valid @RequestBody BulkCreateStudentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(studentService.bulkCreateStudents(principal, request));
     }
 
     @GetMapping

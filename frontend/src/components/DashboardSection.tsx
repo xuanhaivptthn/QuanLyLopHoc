@@ -7,16 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   BookOpen,
-  Users,
-  Calendar,
   Zap,
   Plus,
   UserPlus,
   Clock,
   ArrowRight,
   Building2,
-  CheckCircle2,
-  TrendingUp,
 } from "lucide-react";
 
 interface DashboardSectionProps {
@@ -33,7 +29,7 @@ interface DashboardSectionProps {
 export function DashboardSection({
   currentUser,
   classrooms,
-  students,
+  students: _students,
   sessions,
   onNavigateTab,
   onSelectClassroom,
@@ -44,20 +40,8 @@ export function DashboardSection({
 
   // Compute metrics from actual backend data
   const totalClassrooms = classrooms.length;
-  const totalStudents = students.length;
-  const totalSessions = sessions.length;
 
-  const { overallRate, todaySessions, upcomingSessions } = useMemo(() => {
-    let totalRoster = 0;
-    let totalPresent = 0;
-
-    sessions.forEach((s) => {
-      totalRoster += s.totalStudents || 0;
-      totalPresent += (s.presentCount || 0) + (s.lateCount || 0);
-    });
-
-    const rate = totalRoster > 0 ? Math.round((totalPresent / totalRoster) * 100) : 0;
-
+  const { todaySessions, upcomingSessions } = useMemo(() => {
     // Filter today's sessions
     const today = sessions.filter((s) => s.sessionDate === todayStr);
 
@@ -65,7 +49,6 @@ export function DashboardSection({
     const sorted = [...sessions].sort((a, b) => b.sessionDate.localeCompare(a.sessionDate));
 
     return {
-      overallRate: rate,
       todaySessions: today,
       upcomingSessions: sorted.slice(0, 5),
     };
@@ -75,9 +58,9 @@ export function DashboardSection({
     currentUser?.activeOrganizationName || "Tài khoản cá nhân / Giảng viên độc lập";
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4 sm:gap-5">
       {/* Welcome Banner */}
-      <Card className="p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <Card className="p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground">
@@ -123,114 +106,11 @@ export function DashboardSection({
         </div>
       </Card>
 
-      {/* 4 Core Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Metric 1: Classrooms */}
-        <Card
-          onClick={() => onNavigateTab("classrooms")}
-          className="p-4 shadow-xs border-border hover:border-sky-500/50 hover:bg-sky-500/[0.02] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-              Tổng lớp học
-            </span>
-            <div className="size-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center">
-              <BookOpen className="size-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold font-mono text-foreground">{totalClassrooms}</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Lớp đang giảng dạy</p>
-          </div>
-        </Card>
-
-        {/* Metric 2: Students */}
-        <Card
-          onClick={() => onNavigateTab("students")}
-          className="p-4 shadow-xs border-border hover:border-indigo-500/50 hover:bg-indigo-500/[0.02] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-              Tổng sinh viên
-            </span>
-            <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
-              <Users className="size-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold font-mono text-foreground">{totalStudents}</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Hồ sơ trong danh bạ</p>
-          </div>
-        </Card>
-
-        {/* Metric 3: Sessions */}
-        <Card
-          onClick={() => onNavigateTab("attendance")}
-          className="p-4 shadow-xs border-border hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-              Ca điểm danh
-            </span>
-            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
-              <Calendar className="size-4" />
-            </div>
-          </div>
-          <div>
-            <div className="text-2xl font-bold font-mono text-foreground">{totalSessions}</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Buổi học đã khởi tạo</p>
-          </div>
-        </Card>
-
-        {/* Metric 4: Attendance Rate */}
-        <Card className="p-4 shadow-xs border-border flex flex-col justify-between gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-muted-foreground">Tỷ lệ chuyên cần</span>
-            <div
-              className={`size-8 rounded-lg border flex items-center justify-center ${
-                overallRate >= 80
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
-                  : overallRate >= 50
-                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
-                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25"
-              }`}
-            >
-              <TrendingUp className="size-4" />
-            </div>
-          </div>
-          <div>
-            <div
-              className={`text-2xl font-bold font-mono ${
-                overallRate >= 80
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : overallRate >= 50
-                  ? "text-amber-600 dark:text-amber-400"
-                  : "text-rose-600 dark:text-rose-400"
-              }`}
-            >
-              {overallRate}%
-            </div>
-            <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1.5">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  overallRate >= 80
-                    ? "bg-emerald-500"
-                    : overallRate >= 50
-                    ? "bg-amber-500"
-                    : "bg-rose-500"
-                }`}
-                style={{ width: `${Math.min(100, Math.max(0, overallRate))}%` }}
-              />
-            </div>
-          </div>
-        </Card>
-      </div>
-
       {/* Main Grid: Today's Schedule vs Recent Classrooms */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Ca học hôm nay & Gần nhất */}
         <Card className="lg:col-span-2 shadow-xs overflow-hidden flex flex-col justify-between">
-          <div className="p-4 border-b border-border flex items-center justify-between">
+          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Clock className="size-4 text-foreground" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
@@ -249,7 +129,7 @@ export function DashboardSection({
             </Button>
           </div>
 
-          <div className="p-4 flex-1">
+          <div className="px-4 py-3 flex-1">
             {todaySessions.length > 0 ? (
               <div className="space-y-3 mb-4">
                 <div className="text-xs font-semibold text-foreground flex items-center gap-1.5">
@@ -349,7 +229,7 @@ export function DashboardSection({
 
         {/* Right Col: Quick Access Classrooms */}
         <Card className="shadow-xs overflow-hidden flex flex-col justify-between">
-          <div className="p-4 border-b border-border flex items-center justify-between">
+          <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen className="size-4 text-foreground" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-foreground">
@@ -367,7 +247,7 @@ export function DashboardSection({
             </Button>
           </div>
 
-          <div className="p-4 flex-1">
+          <div className="px-4 py-3 flex-1">
             {classrooms.length === 0 ? (
               <div className="p-8 text-center flex flex-col items-center gap-2">
                 <BookOpen className="size-6 text-muted-foreground stroke-1" />

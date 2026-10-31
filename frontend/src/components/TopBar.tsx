@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Menu, FileText, Zap } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Menu, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface TopBarProps {
@@ -55,27 +54,6 @@ export function TopBar({
 
       {/* Right Controls */}
       <div className="flex items-center gap-2">
-        {/* Backend Status Badge */}
-        <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold py-1 px-2.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
-          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span>Spring Boot (:8080)</span>
-        </span>
-
-        {/* Swagger UI link */}
-        <a
-          href="http://localhost:8080/api/swagger-ui.html"
-          target="_blank"
-          rel="noreferrer"
-          className={cn(
-            buttonVariants({ variant: "outline", size: "sm" }),
-            "hidden lg:inline-flex text-xs items-center gap-1.5"
-          )}
-          title="Tài liệu OpenAPI / Swagger"
-        >
-          <FileText className="size-3.5" data-icon="inline-start" />
-          Swagger Docs
-        </a>
-
         {/* Dark/Light Theme Toggle */}
         <ThemeToggle />
 

@@ -223,3 +223,41 @@ export interface UpdateRecordItem {
 export interface BulkUpdateRecordsRequest {
   records: UpdateRecordItem[];
 }
+
+export interface BulkErrorItem {
+  row?: number;
+  studentCode?: string;
+  message: string;
+}
+
+export interface BulkCreateStudentRequest {
+  students: CreateStudentRequest[];
+}
+
+export interface BulkCreateStudentResponse {
+  totalRequested: number;
+  successCount: number;
+  skippedCount: number;
+  createdStudents: Student[];
+  errors: BulkErrorItem[];
+}
+
+export interface BulkEnrollStudentsRequest {
+  studentIds: string[];
+}
+
+export interface BulkEnrollmentResponse {
+  totalRequested: number;
+  enrolledCount: number;
+  skippedCount: number;
+  enrollments: Enrollment[];
+}
+
+export interface BulkImportToClassroomResponse {
+  totalRequested: number;
+  createdStudentsCount: number;
+  enrolledCount: number;
+  skippedCount: number;
+  errors: BulkErrorItem[];
+}
+

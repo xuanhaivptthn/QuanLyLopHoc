@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useDeferredValue, useRef } from "react";
-import { Classroom, Enrollment, Student, AttendanceSession } from "@/types";
+import { Classroom, Enrollment, Student, AttendanceSession, BulkEnrollmentResponse } from "@/types";
 import { fetchApi } from "@/lib/api-client";
 import { useToast } from "@/lib/toast";
 import { useAuth } from "@/lib/auth-context";
@@ -9,6 +9,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   BookOpen,
   Plus,
@@ -18,15 +19,17 @@ import {
   Zap,
   Trash2,
   UserPlus,
+  Upload,
   ArrowLeft,
   Clock,
   CheckCircle2,
   ExternalLink,
 } from "lucide-react";
+import { BulkAddStudentsModal } from "@/components/BulkAddStudentsModal";
 
 interface ClassroomsSectionProps {
   selectedClassroomId?: string;
-  onSelectClassroom?: (cls: Classroom) => void;
+  onSelectClassroom?: (cls: Classroom | null) => void;
   onNavigateToAttendance?: (classroomId: string, sessionId?: string) => void;
   showCreateModalDirectly?: boolean;
   onCloseCreateModal?: () => void;
@@ -73,7 +76,8 @@ export function ClassroomsSection({
     endTime: "10:30:00",
   });
 
-  const [enrollStudentId, setEnrollStudentId] = useState("");
+  const [selectedStudentIdsToEnroll, setSelectedStudentIdsToEnroll] = useState<string[]>([]);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [studentSearchInModal, setStudentSearchInModal] = useState("");
 
   const onSelectClassroomRef = useRef(onSelectClassroom);
@@ -177,25 +181,27 @@ export function ClassroomsSection({
     }
   };
 
-  // Enroll student into classroom (POST /classrooms/{id}/students)
-  const handleEnrollStudent = async (e: React.FormEvent) => {
+  // Enroll students into classroom (POST /classrooms/{id}/students/bulk)
+  const handleEnrollStudents = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!activeClassroom || !enrollStudentId) return;
+    if (!activeClassroom || selectedStudentIdsToEnroll.length === 0) return;
 
     try {
       setIsLoading(true);
-      await fetchApi<Enrollment>(`/classrooms/${activeClassroom.id}/students`, {
-        method: "POST",
-        body: JSON.stringify({ studentId: enrollStudentId }),
-      });
+      const res = await fetchApi<BulkEnrollmentResponse>(
+        `/classrooms/${activeClassroom.id}/students/bulk`,
+        {
+          method: "POST",
+          body: JSON.stringify({ studentIds: selectedStudentIdsToEnroll }),
+        }
+      );
 
-      const st = allStudents.find((s) => s.id === enrollStudentId);
       toast.success(
-        `Đã ghi danh sinh viên ${st?.fullName || ""} (${st?.studentCode || ""}) vào lớp!`,
+        `Đã ghi danh ${res.enrolledCount} sinh viên vào lớp ${activeClassroom.code}!`,
         "Ghi danh thành công"
       );
       setShowEnrollModal(false);
-      setEnrollStudentId("");
+      setSelectedStudentIdsToEnroll([]);
       await loadClassroomStudents(activeClassroom.id);
       await loadData();
     } catch (err: unknown) {
@@ -285,7 +291,10 @@ export function ClassroomsSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setActiveClassroom(null)}
+                onClick={() => {
+                  setActiveClassroom(null);
+                  if (onSelectClassroomRef.current) onSelectClassroomRef.current(null);
+                }}
                 className="gap-1 text-xs"
               >
                 <ArrowLeft className="size-3.5" />
@@ -315,7 +324,21 @@ export function ClassroomsSection({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setShowEnrollModal(true)}
+                onClick={() => setShowBulkImportModal(true)}
+                className="gap-1.5 text-xs"
+              >
+                <Upload className="size-3.5" />
+                Nhập danh sách (CSV)
+              </Button>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSelectedStudentIdsToEnroll([]);
+                  setShowEnrollModal(true);
+                }}
                 className="gap-1.5 text-xs"
               >
                 <UserPlus className="size-3.5" />
@@ -394,15 +417,30 @@ export function ClassroomsSection({
                       Chọn sinh viên từ danh bạ để ghi danh vào lớp học này và bắt đầu điểm danh.
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    onClick={() => setShowEnrollModal(true)}
-                    className="gap-1.5 text-xs mt-1"
-                  >
-                    <UserPlus className="size-3.5" />
-                    Ghi danh sinh viên đầu tiên
-                  </Button>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedStudentIdsToEnroll([]);
+                        setShowEnrollModal(true);
+                      }}
+                      className="gap-1.5 text-xs"
+                    >
+                      <UserPlus className="size-3.5" />
+                      Ghi danh từ danh bạ
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowBulkImportModal(true)}
+                      className="gap-1.5 text-xs"
+                    >
+                      <Upload className="size-3.5" />
+                      Nhập danh sách (CSV)
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -847,7 +885,7 @@ export function ClassroomsSection({
               </button>
             </div>
 
-            <form onSubmit={handleEnrollStudent} className="flex flex-col gap-3.5">
+            <form onSubmit={handleEnrollStudents} className="flex flex-col gap-3.5">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-foreground">
                   Tìm sinh viên từ danh bạ hệ thống:
@@ -864,6 +902,39 @@ export function ClassroomsSection({
                 </div>
               </div>
 
+              <div className="flex items-center justify-between pb-1 border-b border-border/60">
+                <span className="text-xs font-semibold text-foreground">
+                  Danh sách sinh viên ({availableStudentsToEnroll.length})
+                </span>
+                {availableStudentsToEnroll.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const availableIds = availableStudentsToEnroll.map((s) => s.id);
+                      const allSelected = availableIds.every((id) =>
+                        selectedStudentIdsToEnroll.includes(id)
+                      );
+                      if (allSelected) {
+                        setSelectedStudentIdsToEnroll((prev) =>
+                          prev.filter((id) => !availableIds.includes(id))
+                        );
+                      } else {
+                        setSelectedStudentIdsToEnroll((prev) =>
+                          Array.from(new Set([...prev, ...availableIds]))
+                        );
+                      }
+                    }}
+                    className="text-xs text-primary hover:underline font-semibold cursor-pointer"
+                  >
+                    {availableStudentsToEnroll.every((s) =>
+                      selectedStudentIdsToEnroll.includes(s.id)
+                    )
+                      ? "Bỏ chọn tất cả"
+                      : "Chọn tất cả"}
+                  </button>
+                )}
+              </div>
+
               <div className="max-h-56 overflow-y-auto border border-border rounded-lg divide-y divide-border">
                 {availableStudentsToEnroll.length === 0 ? (
                   <div className="p-6 text-center text-xs text-muted-foreground italic">
@@ -872,59 +943,92 @@ export function ClassroomsSection({
                       : "Tất cả sinh viên phù hợp đã được ghi danh vào lớp học này."}
                   </div>
                 ) : (
-                  availableStudentsToEnroll.map((st) => (
-                    <label
-                      key={st.id}
-                      className={`flex items-center justify-between p-2.5 hover:bg-muted/40 cursor-pointer text-xs transition-colors ${
-                        enrollStudentId === st.id ? "bg-muted font-semibold" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="radio"
-                          name="enrollStudent"
-                          value={st.id}
-                          checked={enrollStudentId === st.id}
-                          onChange={() => setEnrollStudentId(st.id)}
-                          className="size-3.5 text-primary"
-                        />
-                        <div>
-                          <div className="text-foreground">{st.fullName}</div>
-                          <div className="text-[11px] text-muted-foreground font-mono">
-                            MSSV: {st.studentCode} • {st.email}
+                  availableStudentsToEnroll.map((st) => {
+                    const isChecked = selectedStudentIdsToEnroll.includes(st.id);
+                    return (
+                      <label
+                        key={st.id}
+                        className={`flex items-center justify-between p-2.5 hover:bg-muted/40 cursor-pointer text-xs transition-colors ${
+                          isChecked ? "bg-muted/70 font-semibold" : ""
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedStudentIdsToEnroll((prev) => [...prev, st.id]);
+                              } else {
+                                setSelectedStudentIdsToEnroll((prev) =>
+                                  prev.filter((id) => id !== st.id)
+                                );
+                              }
+                            }}
+                            className="size-4 text-primary rounded border-border"
+                          />
+                          <div>
+                            <div className="text-foreground">{st.fullName}</div>
+                            <div className="text-[11px] text-muted-foreground font-mono">
+                              MSSV: {st.studentCode} • {st.email}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      {enrollStudentId === st.id && (
-                        <CheckCircle2 className="size-4 text-primary shrink-0" />
-                      )}
-                    </label>
-                  ))
+                        {isChecked && (
+                          <CheckCircle2 className="size-4 text-primary shrink-0" />
+                        )}
+                      </label>
+                    );
+                  })
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowEnrollModal(false)}
-                  className="text-xs"
-                >
-                  Hủy
-                </Button>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!enrollStudentId || isLoading}
-                  className="text-xs"
-                >
-                  {isLoading ? "Đang ghi danh..." : "Xác nhận ghi danh"}
-                </Button>
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <span className="text-xs text-muted-foreground">
+                  Đã chọn: <strong className="text-foreground">{selectedStudentIdsToEnroll.length}</strong> sinh viên
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEnrollModal(false)}
+                    className="text-xs"
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    disabled={selectedStudentIdsToEnroll.length === 0 || isLoading}
+                    className="text-xs"
+                  >
+                    {isLoading
+                      ? "Đang ghi danh..."
+                      : `Ghi danh (${selectedStudentIdsToEnroll.length}) sinh viên`}
+                  </Button>
+                </div>
               </div>
             </form>
           </Card>
         </div>
+      )}
+
+      {/* Modal: Nhập Danh Sách Sinh Viên Vào Lớp (POST /classrooms/{id}/students/bulk-import) */}
+      {activeClassroom && (
+        <BulkAddStudentsModal
+          isOpen={showBulkImportModal}
+          onClose={() => setShowBulkImportModal(false)}
+          onSuccess={async () => {
+            await loadClassroomStudents(activeClassroom.id);
+            await loadData();
+          }}
+          classroomId={activeClassroom.id}
+          classroomCode={activeClassroom.code}
+          existingStudentCodes={
+            new Set(allStudents.map((s) => s.studentCode.toUpperCase()))
+          }
+        />
       )}
 
       {/* Modal: Tạo ca học mới (POST /classrooms/{id}/sessions) */}

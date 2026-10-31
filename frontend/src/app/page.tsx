@@ -46,14 +46,11 @@ function AppContent() {
       if (clsData.status === "fulfilled" && clsData.value) {
         const fetchedClassrooms = clsData.value;
         setClassrooms(fetchedClassrooms);
-        let currentTarget: Classroom | null = null;
         setSelectedClassroom((prev) => {
           if (prev && fetchedClassrooms.some((c) => c.id === prev.id)) {
-            currentTarget = fetchedClassrooms.find((c) => c.id === prev.id) || prev;
-            return currentTarget;
+            return fetchedClassrooms.find((c) => c.id === prev.id) || prev;
           }
-          currentTarget = fetchedClassrooms.length > 0 ? fetchedClassrooms[0] : null;
-          return currentTarget;
+          return null;
         });
 
         // Fetch sessions across all classrooms for a complete timetable
@@ -102,7 +99,7 @@ function AppContent() {
     logout();
   };
 
-  const handleSelectClassroom = useCallback((cls: Classroom) => {
+  const handleSelectClassroom = useCallback((cls: Classroom | null) => {
     setSelectedClassroom((prev) => (prev?.id === cls?.id ? prev : cls));
   }, []);
 
@@ -183,7 +180,11 @@ function AppContent() {
         {/* Top Header */}
         <TopBar
           currentTabName={getTabTitle(activeTab)}
-          selectedClassName={selectedClassroom ? `${selectedClassroom.code} - ${selectedClassroom.name}` : undefined}
+          selectedClassName={
+            activeTab !== "dashboard" && selectedClassroom
+              ? `${selectedClassroom.code} - ${selectedClassroom.name}`
+              : undefined
+          }
           onOpenNewSession={() => {
             handleTabChange("attendance");
           }}
@@ -234,6 +235,7 @@ function AppContent() {
             <AttendanceSection
               initialClassroomId={selectedClassroom?.id}
               initialSessionId={targetSessionId}
+              onSelectClassroom={handleSelectClassroom}
               onOpenClassroom={(clsId) => {
                 const found = classrooms.find((c) => c.id === clsId);
                 if (found) setSelectedClassroom(found);

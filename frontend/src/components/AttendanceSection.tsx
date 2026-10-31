@@ -38,12 +38,14 @@ interface AttendanceSectionProps {
   initialClassroomId?: string;
   initialSessionId?: string;
   onOpenClassroom?: (classroomId: string) => void;
+  onSelectClassroom?: (cls: Classroom | null) => void;
 }
 
 export function AttendanceSection({
   initialClassroomId,
   initialSessionId,
   onOpenClassroom,
+  onSelectClassroom,
 }: AttendanceSectionProps) {
   const toast = useToast();
   const [, startTransition] = useTransition();
@@ -91,18 +93,19 @@ export function AttendanceSection({
     try {
       const data = await fetchApi<Classroom[]>("/classrooms");
       setClassrooms(data || []);
-      if (!selectedClassroomId && data && data.length > 0) {
-        setSelectedClassroomId(data[0].id);
-      }
     } catch {
       // Ignored
     }
-  }, [selectedClassroomId]);
+  }, []);
 
   // Load sessions for selected classroom
   const loadSessions = useCallback(
     async (classroomId: string, targetSessionId?: string) => {
-      if (!classroomId) return;
+      if (!classroomId) {
+        setSessions([]);
+        setActiveSession(null);
+        return;
+      }
       setIsLoading(true);
       try {
         const data = await fetchApi<AttendanceSession[]>(`/classrooms/${classroomId}/sessions`);
@@ -164,8 +167,17 @@ export function AttendanceSection({
   }, [loadClassrooms]);
 
   useEffect(() => {
+    if (initialClassroomId) {
+      setSelectedClassroomId(initialClassroomId);
+    }
+  }, [initialClassroomId]);
+
+  useEffect(() => {
     if (selectedClassroomId) {
       loadSessions(selectedClassroomId);
+    } else {
+      setSessions([]);
+      setActiveSession(null);
     }
   }, [selectedClassroomId, loadSessions]);
 
@@ -329,7 +341,6 @@ export function AttendanceSection({
   const lateCount = Object.values(localRecords).filter((r) => r.status === "LATE").length;
   const absentCount = Object.values(localRecords).filter((r) => r.status === "ABSENT").length;
   const excusedCount = Object.values(localRecords).filter((r) => r.status === "EXCUSED").length;
-  const attendanceRate = totalInSession > 0 ? Math.round(((presentCount + lateCount) / totalInSession) * 100) : 0;
 
   const currentClassroom = classrooms.find((c) => c.id === selectedClassroomId);
 
@@ -358,10 +369,15 @@ export function AttendanceSection({
                 const val = e.target.value;
                 startTransition(() => {
                   setSelectedClassroomId(val);
+                  if (onSelectClassroom) {
+                    const match = classrooms.find((c) => c.id === val) || null;
+                    onSelectClassroom(match);
+                  }
                 });
               }}
               className="h-8 px-2.5 rounded-md border border-border bg-background text-foreground text-xs font-semibold"
             >
+              <option value="">-- Chọn lớp học --</option>
               {classrooms.map((cls) => (
                 <option key={cls.id} value={cls.id}>
                   {cls.code} - {cls.name}
@@ -374,8 +390,9 @@ export function AttendanceSection({
             type="button"
             variant="outline"
             size="sm"
+            disabled={!selectedClassroomId}
             onClick={() => setShowCreateSessionModal(true)}
-            className="h-8 text-xs gap-1"
+            className="h-8 text-xs gap-1 disabled:opacity-50"
           >
             <Plus className="size-3.5" />
             Tạo ca học
@@ -421,14 +438,14 @@ export function AttendanceSection({
         <div className="flex flex-col gap-5">
           {/* Session Overview Stats Banner */}
           <Card className="p-4 shadow-xs">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex flex-col gap-3">
               <div className="space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-base font-bold text-foreground">
                     {activeSession.classroomCode} • Ca ngày {activeSession.sessionDate}
                   </h2>
                   <Badge variant="outline" className="font-mono text-xs">
-                    {activeSession.startTime} - {activeSession.endTime}
+                    {activeSession.startTime.slice(0, 5)} - {activeSession.endTime.slice(0, 5)}
                   </Badge>
                   <Badge
                     variant={activeSession.status === "ACTIVE" ? "default" : "secondary"}
@@ -442,55 +459,46 @@ export function AttendanceSection({
                 </p>
               </div>
 
-              {/* Counters */}
-              <div className="flex items-center gap-2.5">
-                <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-center border border-emerald-500/25">
-                  <div className="text-[10px] uppercase text-emerald-700 dark:text-emerald-400 font-bold">
+              {/* Counters - Moved down & minified into compact pills */}
+              <div className="pt-2.5 border-t border-border/60 flex flex-wrap items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/25">
+                  <span className="size-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <span className="text-[11px] uppercase font-semibold text-emerald-700 dark:text-emerald-400">
                     Có mặt
-                  </div>
-                  <div className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-300">
+                  </span>
+                  <span className="text-xs font-bold font-mono text-emerald-800 dark:text-emerald-300">
                     {presentCount}
-                  </div>
+                  </span>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-center border border-amber-500/25">
-                  <div className="text-[10px] uppercase text-amber-700 dark:text-amber-400 font-bold">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/25">
+                  <span className="size-1.5 rounded-full bg-amber-500 shrink-0" />
+                  <span className="text-[11px] uppercase font-semibold text-amber-700 dark:text-amber-400">
                     Đi muộn
-                  </div>
-                  <div className="text-sm font-bold font-mono text-amber-700 dark:text-amber-300">
+                  </span>
+                  <span className="text-xs font-bold font-mono text-amber-800 dark:text-amber-300">
                     {lateCount}
-                  </div>
+                  </span>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 text-center border border-rose-500/25">
-                  <div className="text-[10px] uppercase text-rose-700 dark:text-rose-400 font-bold">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-rose-500/10 border border-rose-500/25">
+                  <span className="size-1.5 rounded-full bg-rose-500 shrink-0" />
+                  <span className="text-[11px] uppercase font-semibold text-rose-700 dark:text-rose-400">
                     Vắng mặt
-                  </div>
-                  <div className="text-sm font-bold font-mono text-rose-700 dark:text-rose-300">
+                  </span>
+                  <span className="text-xs font-bold font-mono text-rose-800 dark:text-rose-300">
                     {absentCount}
-                  </div>
+                  </span>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-sky-500/10 text-center border border-sky-500/25">
-                  <div className="text-[10px] uppercase text-sky-700 dark:text-sky-400 font-bold">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-sky-500/10 border border-sky-500/25">
+                  <span className="size-1.5 rounded-full bg-sky-500 shrink-0" />
+                  <span className="text-[11px] uppercase font-semibold text-sky-700 dark:text-sky-400">
                     Có phép
-                  </div>
-                  <div className="text-sm font-bold font-mono text-sky-700 dark:text-sky-300">
+                  </span>
+                  <span className="text-xs font-bold font-mono text-sky-800 dark:text-sky-300">
                     {excusedCount}
-                  </div>
-                </div>
-
-                <div
-                  className={`px-3 py-1.5 rounded-lg text-center border ${
-                    attendanceRate >= 80
-                      ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300"
-                      : attendanceRate >= 50
-                      ? "bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300"
-                      : "bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-300"
-                  }`}
-                >
-                  <div className="text-[10px] uppercase font-bold opacity-80">Tỷ lệ</div>
-                  <div className="text-sm font-bold font-mono">{attendanceRate}%</div>
+                  </span>
                 </div>
               </div>
             </div>
@@ -893,7 +901,9 @@ export function AttendanceSection({
                 : "Chưa chọn lớp học"}
             </p>
             <p className="text-xs text-muted-foreground max-w-sm">
-              Tạo ca học mới để bắt đầu phát sinh mã QR điểm danh động hoặc thực hiện điểm danh danh sách.
+              {currentClassroom
+                ? "Tạo ca học mới để bắt đầu phát sinh mã QR điểm danh động hoặc thực hiện điểm danh danh sách."
+                : "Vui lòng chọn một lớp học ở menu bên trên để quản lý ca học và điểm danh."}
             </p>
           </div>
           {selectedClassroomId && (

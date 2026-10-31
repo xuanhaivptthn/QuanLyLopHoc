@@ -1,11 +1,15 @@
 package com.attendance.classroom.controller;
 
+import com.attendance.classroom.dto.BulkEnrollStudentsRequest;
+import com.attendance.classroom.dto.BulkEnrollmentResponse;
+import com.attendance.classroom.dto.BulkImportToClassroomResponse;
 import com.attendance.classroom.dto.ClassroomResponse;
 import com.attendance.classroom.dto.CreateClassroomRequest;
 import com.attendance.classroom.dto.EnrollStudentRequest;
 import com.attendance.classroom.dto.EnrollmentResponse;
 import com.attendance.classroom.service.ClassroomService;
 import com.attendance.common.security.UserPrincipal;
+import com.attendance.student.dto.BulkCreateStudentRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -71,6 +75,26 @@ public class ClassroomController {
             @PathVariable UUID id,
             @Valid @RequestBody EnrollStudentRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(classroomService.enrollStudent(principal, id, request));
+    }
+
+    @PostMapping("/{id}/students/bulk")
+    @PreAuthorize("hasAnyRole('CENTER_ADMIN', 'TEACHER')")
+    @Operation(summary = "Bulk enroll multiple existing students into classroom")
+    public ResponseEntity<BulkEnrollmentResponse> bulkEnrollStudents(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody BulkEnrollStudentsRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(classroomService.bulkEnrollStudents(principal, id, request));
+    }
+
+    @PostMapping("/{id}/students/bulk-import")
+    @PreAuthorize("hasAnyRole('CENTER_ADMIN', 'TEACHER')")
+    @Operation(summary = "Bulk import students from roster and enroll them directly into classroom")
+    public ResponseEntity<BulkImportToClassroomResponse> bulkImportToClassroom(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @PathVariable UUID id,
+            @Valid @RequestBody BulkCreateStudentRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(classroomService.bulkImportToClassroom(principal, id, request));
     }
 
     @DeleteMapping("/{id}/students/{studentId}")
