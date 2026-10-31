@@ -56,10 +56,10 @@ export function TopBar({
       {/* Right Controls */}
       <div className="flex items-center gap-2">
         {/* Backend Status Badge */}
-        <Badge variant="outline" className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-medium py-1">
-          <span className="size-1.5 rounded-full bg-emerald-500" />
+        <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold py-1 px-2.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25">
+          <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
           <span>Spring Boot (:8080)</span>
-        </Badge>
+        </span>
 
         {/* Swagger UI link */}
         <a

@@ -173,8 +173,8 @@ export function StudentsSection({
           <h1 className="text-xl font-bold tracking-tight text-foreground">
             Danh Sách Sinh Viên
           </h1>
-          <Badge variant="secondary" className="font-mono text-xs">
-            {students.length}
+          <Badge variant="secondary" className="font-mono text-xs bg-sky-500/10 text-sky-700 dark:text-sky-300 border border-sky-500/20">
+            {students.length} sinh viên
           </Badge>
         </div>
 
@@ -260,11 +260,20 @@ export function StudentsSection({
               <tbody className="divide-y divide-border">
                 {filteredStudents.map((st, idx) => (
                   <tr key={st.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="py-2.5 px-4 text-center text-muted-foreground">{idx + 1}</td>
-                    <td className="py-2.5 px-4 font-mono font-bold text-foreground">
-                      {st.studentCode}
+                    <td className="py-2.5 px-4 text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</td>
+                    <td className="py-2.5 px-4 font-mono font-semibold text-foreground">
+                      <span className="bg-sky-500/10 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded border border-sky-500/20 text-[11px] font-mono">
+                        {st.studentCode}
+                      </span>
                     </td>
-                    <td className="py-2.5 px-4 font-medium text-foreground">{st.fullName}</td>
+                    <td className="py-2.5 px-4">
+                      <div className="flex items-center gap-2">
+                        <div className="size-6 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px] border border-indigo-500/20 shrink-0">
+                          {st.fullName ? st.fullName.charAt(0).toUpperCase() : "S"}
+                        </div>
+                        <span className="font-medium text-foreground">{st.fullName}</span>
+                      </div>
+                    </td>
                     <td className="py-2.5 px-4 text-muted-foreground font-mono">{st.email}</td>
                     <td className="py-2.5 px-4 text-muted-foreground font-mono">
                       {st.phone || "—"}
@@ -279,7 +288,7 @@ export function StudentsSection({
                           variant="outline"
                           size="sm"
                           onClick={() => setEnrollTargetStudent(st)}
-                          className="h-7 px-2 text-[11px] gap-1"
+                          className="h-7 px-2.5 text-[11px] gap-1 hover:border-sky-500/40 hover:text-sky-600 dark:hover:text-sky-400"
                         >
                           <BookOpen className="size-3" />
                           Ghi danh

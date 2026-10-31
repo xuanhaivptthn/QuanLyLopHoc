@@ -293,16 +293,19 @@ export function ClassroomsSection({
               </Button>
               <div>
                 <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold uppercase bg-sky-500/10 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded border border-sky-500/20">
+                    {activeClassroom.code}
+                  </span>
                   <h2 className="text-lg font-bold text-foreground tracking-tight">
-                    {activeClassroom.code} - {activeClassroom.name}
+                    {activeClassroom.name}
                   </h2>
-                  <Badge variant="outline" className="font-mono text-[11px]">
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 bg-indigo-500/10">
                     Học kỳ {activeClassroom.semester}
-                  </Badge>
+                  </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Giảng viên: {activeClassroom.teacherName || currentUser?.fullName || "Chưa phân công"} •{" "}
-                  {enrollments.length} sinh viên đã ghi danh
+                  <strong className="text-foreground">{enrollments.length}</strong> sinh viên đã ghi danh
                 </p>
               </div>
             </div>
@@ -418,11 +421,20 @@ export function ClassroomsSection({
                     <tbody className="divide-y divide-border">
                       {enrollments.map((enr, idx) => (
                         <tr key={enr.enrollmentId} className="hover:bg-muted/30 transition-colors">
-                          <td className="py-2.5 px-4 text-center text-muted-foreground">{idx + 1}</td>
+                          <td className="py-2.5 px-4 text-center text-muted-foreground font-mono text-[11px]">{idx + 1}</td>
                           <td className="py-2.5 px-4 font-mono font-semibold text-foreground">
-                            {enr.studentCode}
+                            <span className="bg-sky-500/10 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded border border-sky-500/20 text-[11px] font-mono">
+                              {enr.studentCode}
+                            </span>
                           </td>
-                          <td className="py-2.5 px-4 font-medium text-foreground">{enr.fullName}</td>
+                          <td className="py-2.5 px-4">
+                            <div className="flex items-center gap-2">
+                              <div className="size-6 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px] border border-indigo-500/20 shrink-0">
+                                {enr.fullName ? enr.fullName.charAt(0).toUpperCase() : "S"}
+                              </div>
+                              <span className="font-medium text-foreground">{enr.fullName}</span>
+                            </div>
+                          </td>
                           <td className="py-2.5 px-4 text-muted-foreground font-mono">{enr.email}</td>
                           <td className="py-2.5 px-4 text-muted-foreground font-mono">
                             {enr.phone || "—"}
@@ -501,30 +513,38 @@ export function ClassroomsSection({
                             </span>
                           </td>
                           <td className="py-2.5 px-4">
-                            <Badge
-                              variant={
-                                session.status === "ACTIVE"
-                                  ? "default"
-                                  : session.status === "COMPLETED"
-                                  ? "secondary"
-                                  : "outline"
-                              }
-                              className="text-[10px] font-mono uppercase"
-                            >
-                              {session.status}
-                            </Badge>
+                            {session.status === "ACTIVE" ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 w-fit">
+                                <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                Đang mở
+                              </span>
+                            ) : session.status === "COMPLETED" ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase bg-muted text-muted-foreground border border-border w-fit">
+                                Hoàn thành
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 w-fit">
+                                Sắp tới
+                              </span>
+                            )}
                           </td>
                           <td className="py-2.5 px-4 text-center font-mono font-semibold">
                             {session.totalStudents}
                           </td>
-                          <td className="py-2.5 px-4 text-center font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                            {session.presentCount}
+                          <td className="py-2.5 px-4 text-center">
+                            <span className="font-mono text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                              {session.presentCount}
+                            </span>
                           </td>
-                          <td className="py-2.5 px-4 text-center font-mono text-amber-600 dark:text-amber-400">
-                            {session.lateCount}
+                          <td className="py-2.5 px-4 text-center">
+                            <span className="font-mono text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                              {session.lateCount}
+                            </span>
                           </td>
-                          <td className="py-2.5 px-4 text-center font-mono text-rose-600 dark:text-rose-400">
-                            {session.absentCount}
+                          <td className="py-2.5 px-4 text-center">
+                            <span className="font-mono text-xs font-bold text-rose-700 dark:text-rose-300 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                              {session.absentCount}
+                            </span>
                           </td>
                           <td className="py-2.5 px-4 text-right">
                             {onNavigateToAttendance && (
@@ -650,12 +670,12 @@ export function ClassroomsSection({
                 >
                   <div className="flex flex-col gap-2">
                     <div className="flex items-center justify-between gap-2">
-                      <Badge variant="outline" className="font-mono text-xs font-bold uppercase">
+                      <span className="font-mono text-xs font-bold uppercase bg-sky-500/10 text-sky-700 dark:text-sky-300 px-2 py-0.5 rounded border border-sky-500/20">
                         {cls.code}
-                      </Badge>
-                      <Badge variant="secondary" className="font-mono text-[10px]">
+                      </span>
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 bg-indigo-500/10">
                         {cls.semester}
-                      </Badge>
+                      </span>
                     </div>
 
                     <div>
@@ -669,7 +689,7 @@ export function ClassroomsSection({
                   </div>
 
                   <div className="pt-3 border-t border-border flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                    <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-300 font-mono font-semibold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                       <Users className="size-3.5" />
                       <span>{cls.totalStudents ?? 0} sinh viên</span>
                     </div>

@@ -128,11 +128,13 @@ export function DashboardSection({
         {/* Metric 1: Classrooms */}
         <Card
           onClick={() => onNavigateTab("classrooms")}
-          className="p-4 shadow-xs hover:border-primary/50 transition-colors cursor-pointer flex flex-col justify-between gap-2"
+          className="p-4 shadow-xs border-border hover:border-sky-500/50 hover:bg-sky-500/[0.02] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Tổng lớp học</span>
-            <div className="size-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
+            <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+              Tổng lớp học
+            </span>
+            <div className="size-8 rounded-lg bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center justify-center">
               <BookOpen className="size-4" />
             </div>
           </div>
@@ -145,11 +147,13 @@ export function DashboardSection({
         {/* Metric 2: Students */}
         <Card
           onClick={() => onNavigateTab("students")}
-          className="p-4 shadow-xs hover:border-primary/50 transition-colors cursor-pointer flex flex-col justify-between gap-2"
+          className="p-4 shadow-xs border-border hover:border-indigo-500/50 hover:bg-indigo-500/[0.02] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Tổng sinh viên</span>
-            <div className="size-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
+            <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+              Tổng sinh viên
+            </span>
+            <div className="size-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center">
               <Users className="size-4" />
             </div>
           </div>
@@ -162,11 +166,13 @@ export function DashboardSection({
         {/* Metric 3: Sessions */}
         <Card
           onClick={() => onNavigateTab("attendance")}
-          className="p-4 shadow-xs hover:border-primary/50 transition-colors cursor-pointer flex flex-col justify-between gap-2"
+          className="p-4 shadow-xs border-border hover:border-emerald-500/50 hover:bg-emerald-500/[0.02] transition-all cursor-pointer flex flex-col justify-between gap-3 group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Ca điểm danh</span>
-            <div className="size-8 rounded-lg bg-muted flex items-center justify-center text-foreground">
+            <span className="text-xs font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+              Ca điểm danh
+            </span>
+            <div className="size-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center">
               <Calendar className="size-4" />
             </div>
           </div>
@@ -177,16 +183,45 @@ export function DashboardSection({
         </Card>
 
         {/* Metric 4: Attendance Rate */}
-        <Card className="p-4 shadow-xs flex flex-col justify-between gap-2">
+        <Card className="p-4 shadow-xs border-border flex flex-col justify-between gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Tỷ lệ chuyên cần</span>
-            <div className="size-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+            <span className="text-xs font-semibold text-muted-foreground">Tỷ lệ chuyên cần</span>
+            <div
+              className={`size-8 rounded-lg border flex items-center justify-center ${
+                overallRate >= 80
+                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25"
+                  : overallRate >= 50
+                  ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/25"
+                  : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25"
+              }`}
+            >
               <TrendingUp className="size-4" />
             </div>
           </div>
           <div>
-            <div className="text-2xl font-bold font-mono text-primary">{overallRate}%</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Trung bình các ca học</p>
+            <div
+              className={`text-2xl font-bold font-mono ${
+                overallRate >= 80
+                  ? "text-emerald-600 dark:text-emerald-400"
+                  : overallRate >= 50
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-rose-600 dark:text-rose-400"
+              }`}
+            >
+              {overallRate}%
+            </div>
+            <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1.5">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  overallRate >= 80
+                    ? "bg-emerald-500"
+                    : overallRate >= 50
+                    ? "bg-amber-500"
+                    : "bg-rose-500"
+                }`}
+                style={{ width: `${Math.min(100, Math.max(0, overallRate))}%` }}
+              />
+            </div>
           </div>
         </Card>
       </div>
@@ -228,21 +263,22 @@ export function DashboardSection({
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-bold text-sm text-foreground">
+                        <span className="font-mono font-bold text-xs text-sky-700 dark:text-sky-300 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
                           {session.classroomCode}
                         </span>
                         <Badge variant="outline" className="font-mono text-[10px]">
                           {session.startTime} - {session.endTime}
                         </Badge>
-                        <Badge variant="default" className="text-[9px] uppercase font-mono">
-                          {session.status}
-                        </Badge>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+                          <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          Đang mở
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{session.classroomName}</p>
+                      <p className="text-xs text-muted-foreground mt-1">{session.classroomName}</p>
                     </div>
 
                     <div className="flex items-center gap-3">
-                      <div className="text-xs font-mono text-muted-foreground">
+                      <div className="text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2.5 py-1 rounded-md border border-emerald-500/20">
                         {session.presentCount} / {session.totalStudents} có mặt
                       </div>
                       <Button
@@ -360,19 +396,19 @@ export function DashboardSection({
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-xs text-foreground">
+                        <span className="font-mono font-bold text-xs text-sky-700 dark:text-sky-300 bg-sky-500/10 px-1.5 py-0.5 rounded border border-sky-500/20">
                           {cls.code}
                         </span>
-                        <Badge variant="secondary" className="text-[9px] font-mono">
+                        <span className="text-[9px] font-mono font-semibold px-1.5 py-0.5 rounded border border-indigo-500/20 text-indigo-700 dark:text-indigo-300 bg-indigo-500/10">
                           {cls.semester}
-                        </Badge>
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
+                      <div className="text-xs text-muted-foreground line-clamp-1 mt-1">
                         {cls.name}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="font-mono text-xs font-semibold text-foreground">
+                      <div className="font-mono text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                         {cls.totalStudents ?? 0} SV
                       </div>
                     </div>

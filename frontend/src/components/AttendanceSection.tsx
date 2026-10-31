@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import {
   QrCode,
   Users,
@@ -442,46 +443,54 @@ export function AttendanceSection({
               </div>
 
               {/* Counters */}
-              <div className="flex items-center gap-3">
-                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+              <div className="flex items-center gap-2.5">
+                <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-center border border-emerald-500/25">
+                  <div className="text-[10px] uppercase text-emerald-700 dark:text-emerald-400 font-bold">
                     Có mặt
                   </div>
-                  <div className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
+                  <div className="text-sm font-bold font-mono text-emerald-700 dark:text-emerald-300">
                     {presentCount}
                   </div>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                <div className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-center border border-amber-500/25">
+                  <div className="text-[10px] uppercase text-amber-700 dark:text-amber-400 font-bold">
                     Đi muộn
                   </div>
-                  <div className="text-sm font-bold font-mono text-amber-600 dark:text-amber-400">
+                  <div className="text-sm font-bold font-mono text-amber-700 dark:text-amber-300">
                     {lateCount}
                   </div>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                <div className="px-3 py-1.5 rounded-lg bg-rose-500/10 text-center border border-rose-500/25">
+                  <div className="text-[10px] uppercase text-rose-700 dark:text-rose-400 font-bold">
                     Vắng mặt
                   </div>
-                  <div className="text-sm font-bold font-mono text-rose-600 dark:text-rose-400">
+                  <div className="text-sm font-bold font-mono text-rose-700 dark:text-rose-300">
                     {absentCount}
                   </div>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-muted text-center border border-border">
-                  <div className="text-[10px] uppercase text-muted-foreground font-semibold">
+                <div className="px-3 py-1.5 rounded-lg bg-sky-500/10 text-center border border-sky-500/25">
+                  <div className="text-[10px] uppercase text-sky-700 dark:text-sky-400 font-bold">
                     Có phép
                   </div>
-                  <div className="text-sm font-bold font-mono text-muted-foreground">
+                  <div className="text-sm font-bold font-mono text-sky-700 dark:text-sky-300">
                     {excusedCount}
                   </div>
                 </div>
 
-                <div className="px-3 py-1.5 rounded-lg bg-primary/10 text-center border border-primary/20">
-                  <div className="text-[10px] uppercase text-primary font-semibold">Tỷ lệ</div>
-                  <div className="text-sm font-bold font-mono text-primary">{attendanceRate}%</div>
+                <div
+                  className={`px-3 py-1.5 rounded-lg text-center border ${
+                    attendanceRate >= 80
+                      ? "bg-emerald-500/10 border-emerald-500/25 text-emerald-700 dark:text-emerald-300"
+                      : attendanceRate >= 50
+                      ? "bg-amber-500/10 border-amber-500/25 text-amber-700 dark:text-amber-300"
+                      : "bg-rose-500/10 border-rose-500/25 text-rose-700 dark:text-rose-300"
+                  }`}
+                >
+                  <div className="text-[10px] uppercase font-bold opacity-80">Tỷ lệ</div>
+                  <div className="text-sm font-bold font-mono">{attendanceRate}%</div>
                 </div>
               </div>
             </div>
@@ -598,12 +607,18 @@ export function AttendanceSection({
                     <div className="flex items-center gap-2 text-xs">
                       <Clock className="size-3.5 text-muted-foreground" />
                       <span className="text-muted-foreground">Mã tự động đổi sau:</span>
-                      <Badge
-                        variant={qrSecondsLeft <= 5 ? "destructive" : "secondary"}
-                        className="font-mono text-xs font-bold px-2 py-0.5"
+                      <span
+                        className={cn(
+                          "font-mono text-xs font-bold px-2.5 py-0.5 rounded-full border transition-colors",
+                          qrSecondsLeft <= 5
+                            ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse"
+                            : qrSecondsLeft <= 10
+                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                            : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                        )}
                       >
                         {qrSecondsLeft} giây
-                      </Badge>
+                      </span>
                     </div>
 
                     <p className="text-xs text-muted-foreground max-w-sm">
@@ -771,10 +786,26 @@ export function AttendanceSection({
                         return (
                           <tr key={r.id} className="hover:bg-muted/30 transition-colors">
                             <td className="py-2.5 px-4 text-center text-muted-foreground">{idx + 1}</td>
-                            <td className="py-2.5 px-4 font-mono font-semibold text-foreground">
-                              {r.studentCode}
+                            <td className="py-2.5 px-4">
+                              <span className="font-mono font-semibold text-xs px-1.5 py-0.5 rounded bg-muted/80 text-foreground border border-border">
+                                {r.studentCode}
+                              </span>
                             </td>
-                            <td className="py-2.5 px-4 font-medium text-foreground">{r.studentName}</td>
+                            <td className="py-2.5 px-4 font-medium text-foreground flex items-center gap-2">
+                              <span
+                                className={cn(
+                                  "size-2 rounded-full shrink-0",
+                                  currentStatus === "PRESENT"
+                                    ? "bg-emerald-500"
+                                    : currentStatus === "LATE"
+                                    ? "bg-amber-500"
+                                    : currentStatus === "ABSENT"
+                                    ? "bg-rose-500"
+                                    : "bg-sky-500"
+                                )}
+                              />
+                              <span>{r.studentName}</span>
+                            </td>
                             <td className="py-2.5 px-4">
                               <div className="flex items-center gap-1">
                                 <button
@@ -782,8 +813,8 @@ export function AttendanceSection({
                                   onClick={() => handleStatusChange(r.id, "PRESENT")}
                                   className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "PRESENT"
-                                      ? "bg-emerald-600 text-white shadow-xs"
-                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                      ? "bg-emerald-600 text-white shadow-xs font-bold ring-1 ring-emerald-700"
+                                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                                   }`}
                                 >
                                   Có mặt
@@ -793,8 +824,8 @@ export function AttendanceSection({
                                   onClick={() => handleStatusChange(r.id, "LATE")}
                                   className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "LATE"
-                                      ? "bg-amber-600 text-white shadow-xs"
-                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                      ? "bg-amber-600 text-white shadow-xs font-bold ring-1 ring-amber-700"
+                                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                                   }`}
                                 >
                                   Đi muộn
@@ -804,8 +835,8 @@ export function AttendanceSection({
                                   onClick={() => handleStatusChange(r.id, "ABSENT")}
                                   className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "ABSENT"
-                                      ? "bg-rose-600 text-white shadow-xs"
-                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                      ? "bg-rose-600 text-white shadow-xs font-bold ring-1 ring-rose-700"
+                                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                                   }`}
                                 >
                                   Vắng mặt
@@ -815,8 +846,8 @@ export function AttendanceSection({
                                   onClick={() => handleStatusChange(r.id, "EXCUSED")}
                                   className={`px-2 py-1 rounded text-[11px] font-semibold transition-all cursor-pointer ${
                                     currentStatus === "EXCUSED"
-                                      ? "bg-secondary text-secondary-foreground shadow-xs ring-1 ring-border"
-                                      : "bg-muted text-muted-foreground hover:text-foreground"
+                                      ? "bg-sky-600 text-white shadow-xs font-bold ring-1 ring-sky-700"
+                                      : "bg-muted/70 text-muted-foreground hover:bg-muted hover:text-foreground"
                                   }`}
                                 >
                                   Có phép
@@ -914,12 +945,18 @@ export function AttendanceSection({
 
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">Mã QR đổi mới sau:</span>
-              <Badge
-                variant={qrSecondsLeft <= 5 ? "destructive" : "secondary"}
-                className="font-mono text-base font-bold px-3 py-1"
+              <span
+                className={cn(
+                  "font-mono text-base font-bold px-3.5 py-1 rounded-full border transition-colors",
+                  qrSecondsLeft <= 5
+                    ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 animate-pulse"
+                    : qrSecondsLeft <= 10
+                    ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40"
+                    : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+                )}
               >
                 {qrSecondsLeft}s
-              </Badge>
+              </span>
             </div>
           </div>
         </div>

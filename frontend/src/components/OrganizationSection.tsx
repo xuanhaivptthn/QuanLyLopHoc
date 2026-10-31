@@ -155,15 +155,15 @@ export function OrganizationSection() {
         <Card className="p-4 shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center shrink-0">
+              <div className="size-10 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold text-sm flex items-center justify-center shrink-0 border border-indigo-500/30">
                 {org.code.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="font-mono text-[10px]">
+                  <Badge variant="outline" className="font-mono text-[10px] bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20">
                     {org.code}
                   </Badge>
-                  <Badge variant="secondary" className="text-[10px]">
+                  <Badge variant="secondary" className="text-[10px] bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
                     Hoạt động
                   </Badge>
                 </div>
@@ -223,8 +223,8 @@ export function OrganizationSection() {
                   <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                     <td className="p-3">
                       <div className="flex items-center gap-2">
-                        <div className="size-6 rounded-full bg-muted text-foreground flex items-center justify-center font-bold text-[10px] border border-border">
-                          {m.fullName ? m.fullName.charAt(0) : "U"}
+                        <div className="size-6 rounded-full bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px] border border-indigo-500/20 shrink-0">
+                          {m.fullName ? m.fullName.charAt(0).toUpperCase() : "U"}
                         </div>
                         <span className="font-medium text-foreground">
                           {m.fullName}
@@ -235,12 +235,30 @@ export function OrganizationSection() {
                       {m.email}
                     </td>
                     <td className="p-3">
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] font-semibold border",
+                          m.role === "ADMIN"
+                            ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
+                            : "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
+                        )}
+                      >
                         {m.role}
                       </Badge>
                     </td>
                     <td className="p-3">
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-[10px] font-semibold border",
+                          m.status === "ACTIVE"
+                            ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                            : m.status === "INVITED"
+                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                            : "bg-rose-500/10 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                        )}
+                      >
                         {m.status}
                       </Badge>
                     </td>
@@ -299,13 +317,23 @@ export function OrganizationSection() {
                       {inv.email}
                     </td>
                     <td className="p-3">
-                      <Badge variant="outline" className="text-[10px]">
+                      <Badge
+                        variant="outline"
+                        className={cn(
+                          "text-[10px] font-semibold border",
+                          inv.role === "ADMIN"
+                            ? "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
+                            : "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/30"
+                        )}
+                      >
                         {inv.role}
                       </Badge>
                     </td>
                     <td className="p-3 font-mono text-[11px] text-muted-foreground">
                       <div className="flex items-center gap-1.5">
-                        <span className="truncate max-w-[120px]">{inv.token}</span>
+                        <span className="truncate max-w-[140px] bg-muted/60 px-2 py-0.5 rounded border border-border text-foreground font-mono text-[11px]">
+                          {inv.token}
+                        </span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -315,7 +343,7 @@ export function OrganizationSection() {
                             navigator.clipboard.writeText(inviteUrl);
                             toast.success("Đã sao chép liên kết mời giảng viên!", "Sao chép thành công");
                           }}
-                          className="h-5 text-[10px] px-1.5"
+                          className="h-6 text-[10px] px-2 hover:bg-sky-500/10 hover:text-sky-700 dark:hover:text-sky-300"
                           title="Sao chép link kích hoạt tài khoản"
                         >
                           <Copy className="size-3" data-icon="inline-start" />

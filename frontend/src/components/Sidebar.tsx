@@ -155,28 +155,34 @@ export function Sidebar({
             <div className="flex-1 flex items-center justify-between min-w-0">
               <span className="truncate">{item.label}</span>
 
-              <div className="ml-2 shrink-0">
+              <div className="ml-2 shrink-0 flex items-center gap-1.5">
                 {item.badgeTag && (
-                  <Badge
-                    variant={isActive ? "outline" : "secondary"}
+                  <span
                     className={cn(
-                      "text-[10px] px-1.5 py-0 h-4 font-semibold uppercase tracking-wider",
-                      isActive && "border-primary-foreground/30 text-primary-foreground"
+                      "text-[9px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider border",
+                      isActive
+                        ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
+                        : item.badgeTag === "30s LIVE"
+                        ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30 animate-pulse"
+                        : "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30"
                     )}
                   >
                     {item.badgeTag}
-                  </Badge>
+                  </span>
                 )}
                 {typeof item.badge === "number" && item.badge > 0 && (
-                  <Badge
-                    variant={isActive ? "outline" : "secondary"}
+                  <span
                     className={cn(
-                      "text-[10px] px-1.5 py-0 h-4 font-mono",
-                      isActive && "border-primary-foreground/30 text-primary-foreground"
+                      "text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold border",
+                      isActive
+                        ? "bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30"
+                        : item.id === "classrooms"
+                        ? "bg-sky-500/10 text-sky-700 dark:text-sky-300 border-sky-500/20"
+                        : "bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border-indigo-500/20"
                     )}
                   >
                     {item.badge}
-                  </Badge>
+                  </span>
                 )}
               </div>
             </div>
