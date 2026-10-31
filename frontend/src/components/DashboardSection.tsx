@@ -2,13 +2,46 @@
 
 import React, { useState, useEffect, useTransition, useMemo } from "react";
 import { Classroom, Student, AttendanceSession, User } from "@/types";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Calendar,
+  Zap,
+  Plus,
+  User as UserIcon,
+  GraduationCap,
+  ClipboardList,
+  BookOpen,
+  Building2,
+  Rocket,
+  Smartphone,
+  BarChart3,
+  Link as LinkIcon,
+  Bell,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Settings,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  RotateCcw,
+  X,
+  Sparkles,
+  ExternalLink,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export interface QuickActionItem {
   id: string;
   label: string;
   description: string;
   icon: string;
-  color: "blue" | "emerald" | "amber" | "violet" | "rose" | "indigo";
+  color: "neutral" | "blue" | "emerald" | "amber" | "violet" | "rose" | "indigo";
   targetType: "tab" | "modal" | "url";
   targetValue: string;
   enabled: boolean;
@@ -20,8 +53,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "qr_attendance",
     label: "Điểm Danh QR 30s",
     description: "Khởi tạo mã QR động điểm danh ngay",
-    icon: "⚡",
-    color: "emerald",
+    icon: "zap",
+    color: "neutral",
     targetType: "tab",
     targetValue: "attendance",
     enabled: true,
@@ -30,8 +63,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "new_class",
     label: "Tạo Lớp Học Mới",
     description: "Thêm lớp học hoặc học phần giảng dạy",
-    icon: "➕",
-    color: "blue",
+    icon: "plus",
+    color: "neutral",
     targetType: "modal",
     targetValue: "new_class",
     enabled: true,
@@ -40,8 +73,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "new_student",
     label: "Thêm Sinh Viên",
     description: "Cấp mã và lưu hồ sơ sinh viên",
-    icon: "👤",
-    color: "indigo",
+    icon: "user",
+    color: "neutral",
     targetType: "modal",
     targetValue: "new_student",
     enabled: true,
@@ -50,8 +83,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "view_classrooms",
     label: "Quản Lý Lớp Học",
     description: "Xem danh sách lớp & sinh viên theo lớp",
-    icon: "🏫",
-    color: "violet",
+    icon: "school",
+    color: "neutral",
     targetType: "tab",
     targetValue: "classrooms",
     enabled: true,
@@ -60,8 +93,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "view_students",
     label: "Hồ Sơ Sinh Viên",
     description: "Xem toàn bộ sinh viên & xuất danh sách CSV",
-    icon: "📋",
-    color: "amber",
+    icon: "clipboard",
+    color: "neutral",
     targetType: "tab",
     targetValue: "students",
     enabled: true,
@@ -70,8 +103,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "swagger_docs",
     label: "Tài Liệu API",
     description: "Mở tài liệu OpenAPI / Swagger UI",
-    icon: "📖",
-    color: "rose",
+    icon: "book-open",
+    color: "neutral",
     targetType: "url",
     targetValue: "http://localhost:8080/api/swagger-ui.html",
     enabled: false,
@@ -80,8 +113,8 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
     id: "manage_org",
     label: "Quản Trị Cơ Sở",
     description: "Cấu hình trung tâm đào tạo & mời giảng viên",
-    icon: "🏢",
-    color: "indigo",
+    icon: "building",
+    color: "neutral",
     targetType: "tab",
     targetValue: "org",
     enabled: false,
@@ -89,6 +122,58 @@ const DEFAULT_QUICK_ACTIONS: QuickActionItem[] = [
 ];
 
 const LOCAL_STORAGE_KEY = "eduattend_custom_quick_actions";
+
+// Helper to render Lucide icon from string key or legacy emoji
+export function renderActionIcon(iconKey: string, className = "size-4") {
+  switch (iconKey) {
+    case "zap":
+    case "\u26A1":
+      return <Zap className={className} />;
+    case "plus":
+    case "\u2795":
+      return <Plus className={className} />;
+    case "user":
+    case "\uD83D\uDC64":
+      return <UserIcon className={className} />;
+    case "school":
+    case "\uD83C\uDFEB":
+    case "\uD83C\uDF93":
+      return <GraduationCap className={className} />;
+    case "clipboard":
+    case "\uD83D\uDCCB":
+      return <ClipboardList className={className} />;
+    case "book-open":
+    case "\uD83D\uDCD6":
+      return <BookOpen className={className} />;
+    case "building":
+    case "\uD83C\uDFE2":
+    case "\uD83C\uDFDB\uFE0F":
+    case "\uD83C\uDFDB":
+      return <Building2 className={className} />;
+    case "rocket":
+    case "\uD83D\uDE80":
+      return <Rocket className={className} />;
+    case "calendar":
+    case "\uD83D\uDCC5":
+    case "\uD83D\uDDD3\uFE0F":
+    case "\uD83D\uDDD3":
+      return <Calendar className={className} />;
+    case "smartphone":
+    case "\uD83D\uDCF1":
+      return <Smartphone className={className} />;
+    case "bar-chart":
+    case "\uD83D\uDCCA":
+      return <BarChart3 className={className} />;
+    case "link":
+    case "\uD83D\uDD17":
+      return <LinkIcon className={className} />;
+    case "bell":
+    case "\uD83D\uDD14":
+      return <Bell className={className} />;
+    default:
+      return <Sparkles className={className} />;
+  }
+}
 
 interface DashboardSectionProps {
   currentUser: User | null;
@@ -104,6 +189,7 @@ interface DashboardSectionProps {
 export function DashboardSection({
   currentUser,
   classrooms,
+  students,
   sessions,
   onNavigateTab,
   onSelectClassroom,
@@ -128,14 +214,14 @@ export function DashboardSection({
     label: string;
     description: string;
     icon: string;
-    color: "blue" | "emerald" | "amber" | "violet" | "rose" | "indigo";
+    color: QuickActionItem["color"];
     targetType: "tab" | "url";
     targetValue: string;
   }>({
     label: "",
     description: "",
-    icon: "🚀",
-    color: "blue",
+    icon: "rocket",
+    color: "neutral",
     targetType: "tab",
     targetValue: "attendance",
   });
@@ -150,7 +236,20 @@ export function DashboardSection({
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setQuickActions(parsed);
+          // Normalize legacy emoji icons to clean string keys
+          const normalized = parsed.map((item: QuickActionItem) => {
+            let icon = item.icon;
+            if (icon === "\u26A1") icon = "zap";
+            else if (icon === "\u2795") icon = "plus";
+            else if (icon === "\uD83D\uDC64") icon = "user";
+            else if (icon === "\uD83C\uDFEB" || icon === "\uD83C\uDF93") icon = "school";
+            else if (icon === "\uD83D\uDCCB") icon = "clipboard";
+            else if (icon === "\uD83D\uDCD6") icon = "book-open";
+            else if (icon === "\uD83C\uDFE2" || icon === "\uD83C\uDFDB\uFE0F" || icon === "\uD83C\uDFDB") icon = "building";
+            else if (icon === "\uD83D\uDE80") icon = "rocket";
+            return { ...item, icon, color: "neutral" as const };
+          });
+          setQuickActions(normalized);
         }
       }
     } catch {
@@ -231,8 +330,8 @@ export function DashboardSection({
       id: `custom_${Date.now()}`,
       label: customActionForm.label.trim(),
       description: customActionForm.description.trim() || "Thao tác người dùng tùy chỉnh",
-      icon: customActionForm.icon || "🚀",
-      color: customActionForm.color,
+      icon: customActionForm.icon || "rocket",
+      color: "neutral",
       targetType: customActionForm.targetType,
       targetValue: customActionForm.targetValue.trim(),
       enabled: true,
@@ -243,8 +342,8 @@ export function DashboardSection({
     setCustomActionForm({
       label: "",
       description: "",
-      icon: "🚀",
-      color: "blue",
+      icon: "rocket",
+      color: "neutral",
       targetType: "tab",
       targetValue: "attendance",
     });
@@ -273,7 +372,7 @@ export function DashboardSection({
   const weekDays = useMemo(() => {
     if (!todayStr) return [];
     const baseDate = new Date(todayStr);
-    const dayOfWeek = baseDate.getDay(); // 0 is Sunday, 1 is Monday...
+    const dayOfWeek = baseDate.getDay();
     const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
     const monday = new Date(baseDate);
     monday.setDate(baseDate.getDate() + diffToMonday);
@@ -299,267 +398,264 @@ export function DashboardSection({
 
   // Filtered Sessions according to selected filter and search
   const filteredSessions = useMemo(() => {
-    return sessions.filter((s) => {
-      // Date filter
-      if (filterView === "day") {
-        if (s.sessionDate !== targetDateStr) return false;
-      } else if (filterView === "week") {
-        const isInWeek = weekDays.some((w) => w.iso === s.sessionDate);
-        if (!isInWeek) return false;
-      }
+    return sessions
+      .filter((s) => {
+        if (filterView === "day") {
+          if (s.sessionDate !== targetDateStr) return false;
+        } else if (filterView === "week") {
+          const isInWeek = weekDays.some((w) => w.iso === s.sessionDate);
+          if (!isInWeek) return false;
+        }
 
-      // Search filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const codeMatch = s.classroomCode?.toLowerCase().includes(q);
-        const nameMatch = s.classroomName?.toLowerCase().includes(q);
-        return codeMatch || nameMatch;
-      }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase().trim();
+          const codeMatch = s.classroomCode?.toLowerCase().includes(q);
+          const nameMatch = s.classroomName?.toLowerCase().includes(q);
+          return codeMatch || nameMatch;
+        }
 
-      return true;
-    }).sort((a, b) => {
-      // Sort by date then start time
-      if (a.sessionDate !== b.sessionDate) {
-        return a.sessionDate.localeCompare(b.sessionDate);
-      }
-      return a.startTime.localeCompare(b.startTime);
-    });
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.sessionDate !== b.sessionDate) {
+          return a.sessionDate.localeCompare(b.sessionDate);
+        }
+        return a.startTime.localeCompare(b.startTime);
+      });
   }, [sessions, filterView, targetDateStr, weekDays, searchQuery]);
 
   const activeQuickActions = quickActions.filter((a) => a.enabled);
 
-  const getActionColorClasses = (color: QuickActionItem["color"]) => {
-    switch (color) {
-      case "emerald":
-        return {
-          bg: "bg-emerald-50 dark:bg-emerald-950/40",
-          text: "text-emerald-600 dark:text-emerald-400",
-          border: "hover:border-emerald-300 dark:hover:border-emerald-700",
-          badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-        };
-      case "indigo":
-        return {
-          bg: "bg-indigo-50 dark:bg-indigo-950/40",
-          text: "text-indigo-600 dark:text-indigo-400",
-          border: "hover:border-indigo-300 dark:hover:border-indigo-700",
-          badge: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
-        };
-      case "violet":
-        return {
-          bg: "bg-violet-50 dark:bg-violet-950/40",
-          text: "text-violet-600 dark:text-violet-400",
-          border: "hover:border-violet-300 dark:hover:border-violet-700",
-          badge: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
-        };
-      case "amber":
-        return {
-          bg: "bg-amber-50 dark:bg-amber-950/40",
-          text: "text-amber-600 dark:text-amber-400",
-          border: "hover:border-amber-300 dark:hover:border-amber-700",
-          badge: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-        };
-      case "rose":
-        return {
-          bg: "bg-rose-50 dark:bg-rose-950/40",
-          text: "text-rose-600 dark:text-rose-400",
-          border: "hover:border-rose-300 dark:hover:border-rose-700",
-          badge: "bg-rose-500/10 text-rose-600 dark:text-rose-400",
-        };
-      case "blue":
-      default:
-        return {
-          bg: "bg-blue-50 dark:bg-blue-950/40",
-          text: "text-blue-600 dark:text-blue-400",
-          border: "hover:border-blue-300 dark:hover:border-blue-700",
-          badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
-        };
-    }
-  };
+  // High-level statistics
+  const activeSessionCount = useMemo(() => {
+    return sessions.filter((s) => s.status === "ACTIVE").length;
+  }, [sessions]);
 
   return (
-    <div className="space-y-6">
-      {/* Top Header Bar: Clean & Focused */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1 border-b border-slate-200/80 dark:border-slate-800/80">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <span>📅 Thời Khóa Biểu &amp; Tác Vụ</span>
+    <div className="flex flex-col gap-6">
+      {/* Top Header Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-border">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <Calendar className="size-5 text-foreground" />
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
+              Thời Khóa Biểu &amp; Tác Vụ
+            </h1>
             {currentUser?.activeOrganizationName && (
-              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
+              <Badge variant="outline" className="text-xs">
                 {currentUser.activeOrganizationName}
-              </span>
+              </Badge>
             )}
-          </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          </div>
+          <p className="text-xs text-muted-foreground">
             Lịch giảng dạy các ca học và thao tác nhanh điểm danh QR
           </p>
         </div>
 
         {/* Quick Date Switcher Controls */}
-        <div className="flex items-center gap-2 self-start sm:self-center">
-          <button
+        <div className="flex items-center gap-1.5 self-start sm:self-center">
+          <Button
             type="button"
+            variant={selectedDayOffset === 0 && filterView === "day" ? "default" : "outline"}
+            size="sm"
             onClick={() => {
               setSelectedDayOffset(0);
               setFilterView("day");
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              selectedDayOffset === 0 && filterView === "day"
-                ? "bg-blue-600 text-white shadow-sm shadow-blue-500/25"
-                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60"
-            }`}
+            className="text-xs"
           >
             Hôm nay
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={filterView === "week" ? "default" : "outline"}
+            size="sm"
             onClick={() => setFilterView(filterView === "week" ? "day" : "week")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterView === "week"
-                ? "bg-indigo-600 text-white shadow-sm shadow-indigo-500/25"
-                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60"
-            }`}
+            className="text-xs"
           >
             Cả Tuần
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={filterView === "all" ? "default" : "outline"}
+            size="sm"
             onClick={() => setFilterView(filterView === "all" ? "day" : "all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              filterView === "all"
-                ? "bg-violet-600 text-white shadow-sm shadow-violet-500/25"
-                : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/60"
-            }`}
+            className="text-xs"
           >
             Tất Cả Ca
-          </button>
+          </Button>
         </div>
+      </div>
+
+      {/* Top Stat Overview Cards (Dominant Neutral, No Gradients) */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3.5">
+        <Card className="shadow-2xs">
+          <CardHeader className="p-3.5 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardDescription className="text-xs font-medium">Lớp Giảng Dạy</CardDescription>
+            <GraduationCap className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="p-3.5 pt-0">
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {classrooms.length}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Khóa học đang hoạt động</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-2xs">
+          <CardHeader className="p-3.5 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardDescription className="text-xs font-medium">Tổng Sinh Viên</CardDescription>
+            <UserIcon className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="p-3.5 pt-0">
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {students.length}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Hồ sơ đã ghi danh</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-2xs">
+          <CardHeader className="p-3.5 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardDescription className="text-xs font-medium">Tổng Ca Học</CardDescription>
+            <Calendar className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="p-3.5 pt-0">
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {sessions.length}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Ca học trong hệ thống</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-2xs border-border">
+          <CardHeader className="p-3.5 pb-1 flex flex-row items-center justify-between space-y-0">
+            <CardDescription className="text-xs font-medium">QR Đang Mở</CardDescription>
+            <Zap className="size-4 text-foreground" />
+          </CardHeader>
+          <CardContent className="p-3.5 pt-0">
+            <div className="text-2xl font-bold tracking-tight text-foreground">
+              {activeSessionCount}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Ca điểm danh trực tiếp</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Grid: Left 2/3 Timetable, Right 1/3 Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        {/* ========================================================
-            LEFT COLUMN (2/3): TIMETABLE (Thời Khóa Biểu)
-           ======================================================== */}
-        <div className="lg:col-span-2 space-y-4">
+        {/* LEFT COLUMN: TIMETABLE */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
           {/* Weekday Carousel / Pills */}
           {filterView !== "all" && weekDays.length > 0 && (
-            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-2">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400 px-1">
+            <Card className="p-3 shadow-2xs">
+              <div className="flex items-center justify-between text-xs font-medium text-muted-foreground px-1 mb-2">
                 <span>Tuần này • {targetDateFormatted}</span>
                 <div className="flex items-center gap-1">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
                     onClick={() => setSelectedDayOffset((prev) => prev - 1)}
-                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
                     title="Ngày hôm trước"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
-                  </button>
-                  <button
+                    <ChevronLeft className="size-3.5" />
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-7"
                     onClick={() => setSelectedDayOffset((prev) => prev + 1)}
-                    className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 transition-colors"
                     title="Ngày tiếp theo"
                   >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                    <ChevronRight className="size-3.5" />
+                  </Button>
                 </div>
               </div>
 
               {/* Day Selector Buttons */}
-              <div className="grid grid-cols-7 gap-1.5">
+              <div className="grid grid-cols-7 gap-1">
                 {weekDays.map((day) => {
                   const isCurrentTarget = day.isSelected && filterView === "day";
                   return (
-                    <button
+                    <Button
                       key={day.iso}
                       type="button"
+                      variant={isCurrentTarget ? "default" : day.isToday ? "secondary" : "ghost"}
                       onClick={() => {
                         setSelectedDayOffset(day.offsetFromToday);
                         setFilterView("day");
                       }}
-                      className={`flex flex-col items-center justify-center py-2 px-1 rounded-xl text-xs font-bold transition-all relative ${
-                        isCurrentTarget
-                          ? "bg-blue-600 text-white shadow-md shadow-blue-500/25"
-                          : day.isToday
-                          ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-900/60"
-                          : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400"
-                      }`}
-                    >
-                      <span className="text-[10px] font-semibold opacity-75">{day.label}</span>
-                      <span className="text-sm font-extrabold">{day.dateNum}</span>
-                      {day.isToday && !isCurrentTarget && (
-                        <span className="absolute bottom-1 w-1 h-1 rounded-full bg-blue-600" />
+                      className={cn(
+                        "flex flex-col items-center justify-center h-14 p-1 rounded-md text-xs relative",
+                        day.isToday && !isCurrentTarget && "border border-border"
                       )}
-                    </button>
+                    >
+                      <span className="text-[10px] font-normal opacity-75">{day.label}</span>
+                      <span className="text-sm font-bold">{day.dateNum}</span>
+                      {day.isToday && !isCurrentTarget && (
+                        <span className="absolute bottom-1 size-1 rounded-full bg-primary" />
+                      )}
+                    </Button>
                   );
                 })}
               </div>
-            </div>
+            </Card>
           )}
 
           {/* Timetable Header & Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {filterView === "day"
                   ? `Lịch ca học ngày ${targetDateStr}`
                   : filterView === "week"
                   ? "Toàn bộ ca học trong tuần"
                   : "Toàn bộ danh sách ca học"}
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Badge variant="secondary" className="text-[10px] font-mono">
                 {filteredSessions.length} ca
-              </span>
+              </Badge>
             </div>
 
-            {/* Quick Search in Schedule */}
+            {/* Quick Search */}
             <div className="relative w-full sm:w-60">
-              <input
+              <Search className="size-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm mã hoặc tên lớp..."
-                className="w-full pl-8 pr-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-slate-100 placeholder:text-slate-400"
+                className="pl-8 h-8 text-xs bg-background"
               />
-              <svg
-                className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
             </div>
           </div>
 
           {/* Timetable Sessions List */}
-          <div className="space-y-3">
+          <div className="flex flex-col gap-2.5">
             {filteredSessions.length === 0 ? (
-              <div className="p-8 text-center rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-3">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-slate-50 dark:bg-slate-800/60 text-slate-400 flex items-center justify-center text-2xl shadow-inner">
-                  ☕
+              <Card className="p-8 text-center shadow-2xs">
+                <div className="size-12 mx-auto rounded-lg bg-muted text-muted-foreground flex items-center justify-center mb-3">
+                  <Calendar className="size-6" />
                 </div>
-                <div className="space-y-1">
-                  <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
-                    Không có ca học nào trong khoảng thời gian này
-                  </h3>
-                  <p className="text-xs text-slate-400 dark:text-slate-500 max-w-sm mx-auto">
-                    Bạn chưa có lịch lên lớp hoặc các ca học đã kết thúc. Bạn có thể lên lịch ca học mới để bắt đầu điểm danh.
-                  </p>
-                </div>
-                <button
+                <h3 className="text-sm font-semibold text-foreground">
+                  Không có ca học nào trong khoảng thời gian này
+                </h3>
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-1 mb-4">
+                  Bạn chưa có lịch lên lớp hoặc các ca học đã kết thúc. Bạn có thể lên lịch ca học mới để bắt đầu điểm danh.
+                </p>
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => onNavigateTab("attendance")}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all inline-flex items-center gap-1.5"
+                  className="mx-auto"
                 >
-                  <span>⚡ Lên Lịch / Mở Điểm Danh Mới</span>
-                </button>
-              </div>
+                  <Zap className="size-3.5" data-icon="inline-start" />
+                  Lên Lịch / Mở Điểm Danh Mới
+                </Button>
+              </Card>
             ) : (
               filteredSessions.map((session) => {
                 const total = session.totalStudents || 0;
@@ -568,78 +664,80 @@ export function DashboardSection({
                 const isActive = session.status === "ACTIVE";
 
                 return (
-                  <div
+                  <Card
                     key={session.id}
-                    className={`p-4 rounded-2xl border transition-all duration-200 bg-white dark:bg-slate-900 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 group ${
+                    className={cn(
+                      "p-3.5 transition-colors shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 group",
                       isActive
-                        ? "border-emerald-400 dark:border-emerald-600/80 ring-2 ring-emerald-500/10 shadow-emerald-500/5"
-                        : "border-slate-200/80 dark:border-slate-800/80 hover:border-blue-300 dark:hover:border-blue-700"
-                    }`}
+                        ? "border-foreground ring-1 ring-border"
+                        : "hover:border-foreground/40"
+                    )}
                   >
                     {/* Time Slot & Left Info */}
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      {/* Time Badge */}
+                    <div className="flex items-start gap-3 min-w-0">
+                      {/* Time Slot Container */}
                       <div
-                        className={`p-2.5 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 min-w-18 text-center transition-colors ${
+                        className={cn(
+                          "p-2 rounded-md flex flex-col items-center justify-center shrink-0 min-w-16 text-center",
                           isActive
-                            ? "bg-emerald-600 text-white shadow-md shadow-emerald-500/25"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
-                        }`}
+                            ? "bg-primary text-primary-foreground font-semibold"
+                            : "bg-muted text-muted-foreground"
+                        )}
                       >
-                        <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+                        <span className="text-[10px] uppercase font-mono opacity-80">
                           {session.startTime}
                         </span>
-                        <span className="text-xs font-black tracking-tight">
+                        <span className="text-xs font-bold font-mono">
                           {session.endTime}
                         </span>
                       </div>
 
                       {/* Details */}
-                      <div className="space-y-1 min-w-0">
+                      <div className="flex flex-col gap-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded bg-blue-50 dark:bg-blue-950/60">
+                          <Badge variant="outline" className="font-mono text-[10px]">
                             {session.classroomCode}
-                          </span>
-                          <h4 className="text-sm font-extrabold text-slate-900 dark:text-white truncate">
+                          </Badge>
+                          <h4 className="text-xs font-bold text-foreground truncate">
                             {session.classroomName}
                           </h4>
                           {isActive && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                            <Badge variant="default" className="text-[10px] font-semibold">
                               QR ĐANG MỞ
-                            </span>
+                            </Badge>
                           )}
                           {session.status === "COMPLETED" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                            <Badge variant="secondary" className="text-[10px]">
                               Đã kết thúc
-                            </span>
+                            </Badge>
                           )}
                           {session.status === "SCHEDULED" && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
+                            <Badge variant="outline" className="text-[10px]">
                               Sắp diễn ra
-                            </span>
+                            </Badge>
                           )}
                         </div>
 
                         {/* Attendance Counter & Date info */}
-                        <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
+                        <div className="flex flex-wrap items-center gap-2.5 text-xs text-muted-foreground">
                           <span className="flex items-center gap-1 font-medium">
-                            🗓️ {session.sessionDate}
+                            <Clock className="size-3" />
+                            {session.sessionDate}
                           </span>
                           <span>•</span>
-                          <span className="font-medium">
-                            Sĩ số: <strong className="text-slate-700 dark:text-slate-200">{total}</strong> SV
+                          <span>
+                            Sĩ số: <strong className="text-foreground">{total}</strong> SV
                           </span>
                           <span>•</span>
-                          <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          <span className="font-medium text-foreground">
                             Có mặt: {checkedIn}/{total} ({percent}%)
                           </span>
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full max-w-xs bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden mt-1">
+                        <div className="w-full max-w-xs bg-muted rounded-full h-1.5 overflow-hidden mt-0.5">
                           <div
-                            className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                            className="bg-primary h-1.5 rounded-full transition-all duration-300"
                             style={{ width: `${percent}%` }}
                           />
                         </div>
@@ -647,205 +745,197 @@ export function DashboardSection({
                     </div>
 
                     {/* Right Action Button */}
-                    <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
-                      <button
+                    <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                      <Button
                         type="button"
+                        size="sm"
+                        variant={isActive ? "default" : "outline"}
                         onClick={() => handleGoToAttendanceSession(session.classroomId)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 ${
-                          isActive
-                            ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/25"
-                            : "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
-                        }`}
+                        className="text-xs"
                       >
-                        <span>{isActive ? "⚡ Xem QR Điểm Danh" : "Vào Điểm Danh"}</span>
-                      </button>
+                        <Zap className="size-3.5" data-icon="inline-start" />
+                        <span>{isActive ? "Xem QR Điểm Danh" : "Vào Điểm Danh"}</span>
+                      </Button>
                     </div>
-                  </div>
+                  </Card>
                 );
               })
             )}
           </div>
         </div>
 
-        {/* ========================================================
-            RIGHT COLUMN (1/3): QUICK ACTIONS (Thao Tác Nhanh)
-           ======================================================== */}
-        <div className="space-y-4">
-          <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-2xs space-y-4">
+        {/* RIGHT COLUMN: QUICK ACTIONS */}
+        <div className="flex flex-col gap-4">
+          <Card className="p-4 shadow-2xs">
             {/* Header with Edit Button */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-base">⚡</span>
-                <h3 className="text-sm font-extrabold tracking-tight text-slate-900 dark:text-white">
+                <Zap className="size-4 text-foreground" />
+                <h3 className="text-xs font-bold tracking-tight text-foreground uppercase">
                   Thao Tác Nhanh
                 </h3>
               </div>
 
-              {/* Edit Action List Button */}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowEditActionsModal(true)}
-                className="px-2.5 py-1 rounded-xl text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors inline-flex items-center gap-1"
+                className="h-7 text-xs text-muted-foreground hover:text-foreground"
                 title="Tùy chỉnh danh sách thao tác nhanh"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+                <Settings className="size-3.5" data-icon="inline-start" />
                 <span>Tùy chỉnh</span>
-              </button>
+              </Button>
             </div>
 
-            {/* Actions Grid / List */}
-            <div className="space-y-2">
+            {/* Actions List */}
+            <div className="flex flex-col gap-2">
               {activeQuickActions.length === 0 ? (
-                <div className="text-center py-6 text-xs text-slate-400">
-                  Chưa có thao tác nào được bật. Nhấn &quot;Tùy chỉnh&quot; để chọn các thao tác bạn muốn hiển thị.
+                <div className="text-center py-6 text-xs text-muted-foreground">
+                  Chưa có thao tác nào được bật. Nhấn &quot;Tùy chỉnh&quot; để chọn thao tác hiển thị.
                 </div>
               ) : (
                 activeQuickActions.map((action) => {
-                  const colors = getActionColorClasses(action.color);
                   return (
-                    <button
+                    <Button
                       key={action.id}
                       type="button"
+                      variant="outline"
                       onClick={() => handleActionClick(action)}
-                      className={`w-full p-3 rounded-2xl border border-slate-200/60 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 ${colors.border} transition-all duration-200 flex items-center justify-between gap-3 text-left group active:scale-[0.99]`}
+                      className="w-full h-auto p-2.5 justify-between items-center text-left hover:bg-muted/60"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div
-                          className={`w-10 h-10 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center text-lg flex-shrink-0 shadow-2xs group-hover:scale-110 transition-transform`}
-                        >
-                          {action.icon}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="size-7 rounded-md bg-muted text-foreground flex items-center justify-center shrink-0 border border-border">
+                          {renderActionIcon(action.icon, "size-3.5")}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          <span className="text-xs font-semibold text-foreground truncate">
                             {action.label}
                           </span>
-                          <span className="text-[11px] text-slate-400 dark:text-slate-500 truncate">
+                          <span className="text-[10px] text-muted-foreground font-normal truncate">
                             {action.description}
                           </span>
                         </div>
                       </div>
 
-                      <svg
-                        className="w-4 h-4 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transform group-hover:translate-x-0.5 transition-all flex-shrink-0"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
+                      <ChevronRight className="size-3.5 text-muted-foreground shrink-0 ml-1" />
+                    </Button>
                   );
                 })
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
 
-      {/* ========================================================
-          MODAL: CUSTOMIZE QUICK ACTION LIST (Tùy Chỉnh Thao Tác)
-         ======================================================== */}
+      {/* MODAL: CUSTOMIZE QUICK ACTION LIST */}
       {showEditActionsModal && (
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in-0 zoom-in-95 duration-200">
+          <Card className="w-full max-w-lg shadow-xl overflow-hidden flex flex-col max-h-[85vh] animate-in fade-in-0 zoom-in-95 duration-150">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+            <div className="p-4 border-b border-border flex items-center justify-between">
               <div>
-                <h3 className="text-base font-extrabold text-slate-900 dark:text-white">
-                  ⚙️ Tùy Chỉnh Danh Sách Thao Tác Nhanh
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Settings className="size-4" />
+                  Tùy Chỉnh Danh Sách Thao Tác Nhanh
                 </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Bật/tắt, sắp xếp thứ tự hoặc tạo thêm thao tác tùy chỉnh của bạn
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setShowEditActionsModal(false);
                   setShowAddCustomForm(false);
                 }}
-                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="size-7"
                 aria-label="Đóng"
               >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
-            {/* Modal Body: Scrollable */}
-            <div className="p-5 space-y-4 overflow-y-auto flex-1">
-              {/* Actions List */}
-              <div className="space-y-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            {/* Modal Body */}
+            <div className="p-4 flex flex-col gap-4 overflow-y-auto flex-1">
+              <div className="flex flex-col gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Danh sách thao tác ({quickActions.length})
                 </span>
 
                 {quickActions.map((action, index) => {
-                  const colors = getActionColorClasses(action.color);
                   return (
                     <div
                       key={action.id}
-                      className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 flex items-center justify-between gap-3"
+                      className="p-2.5 rounded-lg border border-border bg-muted/30 flex items-center justify-between gap-2.5"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Toggle Checkbox */}
+                      <div className="flex items-center gap-2.5 min-w-0">
                         <input
                           type="checkbox"
                           checked={action.enabled}
                           onChange={() => toggleActionEnabled(action.id)}
-                          className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-700"
+                          className="size-4 rounded border-border text-foreground focus:ring-ring"
                         />
-                        <div
-                          className={`w-8 h-8 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center text-base flex-shrink-0`}
-                        >
-                          {action.icon}
+                        <div className="size-7 rounded-md bg-muted text-foreground flex items-center justify-center shrink-0 border border-border">
+                          {renderActionIcon(action.icon, "size-3.5")}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className={`text-xs font-bold truncate ${action.enabled ? "text-slate-900 dark:text-slate-100" : "text-slate-400 line-through"}`}>
+                          <span
+                            className={cn(
+                              "text-xs font-semibold truncate",
+                              action.enabled ? "text-foreground" : "text-muted-foreground line-through"
+                            )}
+                          >
                             {action.label}
                           </span>
-                          <span className="text-[10px] text-slate-400 truncate">
+                          <span className="text-[10px] text-muted-foreground truncate">
                             {action.description}
                           </span>
                         </div>
                       </div>
 
                       {/* Reorder and Delete controls */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <button
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           disabled={index === 0}
                           onClick={() => moveAction(index, "up")}
-                          className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                          className="size-7"
                           title="Di chuyển lên"
                         >
-                          ⬆️
-                        </button>
-                        <button
+                          <ArrowUp className="size-3.5" />
+                        </Button>
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="icon"
                           disabled={index === quickActions.length - 1}
                           onClick={() => moveAction(index, "down")}
-                          className="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                          className="size-7"
                           title="Di chuyển xuống"
                         >
-                          ⬇️
-                        </button>
+                          <ArrowDown className="size-3.5" />
+                        </Button>
                         {action.isCustom && (
-                          <button
+                          <Button
                             type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={() => deleteAction(action.id)}
-                            className="p-1 rounded-lg hover:bg-rose-100 dark:hover:bg-rose-950/60 text-rose-500 transition-colors ml-1"
+                            className="size-7 text-destructive hover:bg-destructive/10"
                             title="Xóa thao tác tùy chỉnh"
                           >
-                            🗑️
-                          </button>
+                            <Trash2 className="size-3.5" />
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -855,173 +945,161 @@ export function DashboardSection({
 
               {/* Add Custom Action Toggle */}
               {!showAddCustomForm ? (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={() => setShowAddCustomForm(true)}
-                  className="w-full py-2.5 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 hover:border-blue-500 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-blue-600 transition-all flex items-center justify-center gap-2"
+                  className="w-full border-dashed"
                 >
-                  <span>➕ Tạo Thao Tác Mới</span>
-                </button>
+                  <Plus className="size-3.5" data-icon="inline-start" />
+                  Tạo Thao Tác Mới
+                </Button>
               ) : (
                 /* Custom Action Creation Form */
-                <form onSubmit={handleAddCustomAction} className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/50 space-y-3">
+                <form
+                  onSubmit={handleAddCustomAction}
+                  className="p-3.5 rounded-lg bg-muted/40 border border-border flex flex-col gap-3"
+                >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold text-blue-900 dark:text-blue-300">
+                    <span className="text-xs font-semibold text-foreground">
                       Tạo Thao Tác Nhanh Tùy Chỉnh
                     </span>
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setShowAddCustomForm(false)}
-                      className="text-xs text-slate-400 hover:text-slate-600"
+                      className="h-6 text-xs text-muted-foreground"
                     >
                       Hủy
-                    </button>
+                    </Button>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-medium text-foreground">
                       Tên thao tác *
                     </label>
-                    <input
+                    <Input
                       type="text"
                       required
                       value={customActionForm.label}
                       onChange={(e) => setCustomActionForm({ ...customActionForm, label: e.target.value })}
                       placeholder="Ví dụ: Lịch Thi Cuối Kỳ"
-                      className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                      className="h-8 text-xs bg-background"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-medium text-foreground">
                       Mô tả ngắn
                     </label>
-                    <input
+                    <Input
                       type="text"
                       value={customActionForm.description}
                       onChange={(e) => setCustomActionForm({ ...customActionForm, description: e.target.value })}
                       placeholder="Ví dụ: Tra cứu lịch thi & phòng thi"
-                      className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                      className="h-8 text-xs bg-background"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        Icon Emoji
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-medium text-foreground">
+                        Biểu tượng
                       </label>
                       <select
                         value={customActionForm.icon}
                         onChange={(e) => setCustomActionForm({ ...customActionForm, icon: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                        className="w-full px-2.5 py-1.5 rounded-md text-xs bg-background border border-border text-foreground"
                       >
-                        <option value="🚀">🚀 Tên lửa</option>
-                        <option value="⚡">⚡ Sấm sét</option>
-                        <option value="📱">📱 Điện thoại</option>
-                        <option value="🏫">🏫 Trường học</option>
-                        <option value="👤">👤 Sinh viên</option>
-                        <option value="📊">📊 Thống kê</option>
-                        <option value="📅">📅 Lịch</option>
-                        <option value="🔗">🔗 Liên kết</option>
-                        <option value="🎓">🎓 Bằng cấp</option>
-                        <option value="🔔">🔔 Thông báo</option>
+                        <option value="rocket">Rocket (Khởi chạy nhanh)</option>
+                        <option value="zap">Zap (Tia chớp / Điểm danh)</option>
+                        <option value="smartphone">Mobile (Thiết bị di động)</option>
+                        <option value="school">Classroom (Lớp học / Giảng đường)</option>
+                        <option value="user">User (Sinh viên / Người dùng)</option>
+                        <option value="bar-chart">Bar Chart (Thống kê)</option>
+                        <option value="calendar">Calendar (Lịch / Thời gian)</option>
+                        <option value="link">Link (Liên kết web)</option>
+                        <option value="bell">Notification (Thông báo)</option>
                       </select>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        Màu sắc
-                      </label>
-                      <select
-                        value={customActionForm.color}
-                        onChange={(e) => setCustomActionForm({ ...customActionForm, color: e.target.value as QuickActionItem["color"] })}
-                        className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
-                      >
-                        <option value="blue">Xanh dương</option>
-                        <option value="emerald">Xanh lá (Emerald)</option>
-                        <option value="indigo">Xanh chàm (Indigo)</option>
-                        <option value="violet">Tím (Violet)</option>
-                        <option value="amber">Vàng hổ phách</option>
-                        <option value="rose">Hồng đào (Rose)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        Hành động khi nhấn
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[11px] font-medium text-foreground">
+                        Loại hành động
                       </label>
                       <select
                         value={customActionForm.targetType}
-                        onChange={(e) => setCustomActionForm({ ...customActionForm, targetType: e.target.value as "tab" | "url" })}
-                        className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                        onChange={(e) =>
+                          setCustomActionForm({ ...customActionForm, targetType: e.target.value as "tab" | "url" })
+                        }
+                        className="w-full px-2.5 py-1.5 rounded-md text-xs bg-background border border-border text-foreground"
                       >
-                        <option value="tab">Chuyển sang màn hình (Tab)</option>
-                        <option value="url">Mở đường dẫn web (URL)</option>
+                        <option value="tab">Chuyển màn hình (Tab)</option>
+                        <option value="url">Mở liên kết web (URL)</option>
                       </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                        Điểm đến (Tab / URL)
-                      </label>
-                      {customActionForm.targetType === "tab" ? (
-                        <select
-                          value={customActionForm.targetValue}
-                          onChange={(e) => setCustomActionForm({ ...customActionForm, targetValue: e.target.value })}
-                          className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
-                        >
-                          <option value="attendance">Điểm danh QR</option>
-                          <option value="classrooms">Lớp học</option>
-                          <option value="students">Hồ sơ sinh viên</option>
-                          <option value="org">Tổ chức &amp; Cơ sở</option>
-                        </select>
-                      ) : (
-                        <input
-                          type="url"
-                          required
-                          value={customActionForm.targetValue}
-                          onChange={(e) => setCustomActionForm({ ...customActionForm, targetValue: e.target.value })}
-                          placeholder="https://..."
-                          className="w-full px-3 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
-                        />
-                      )}
                     </div>
                   </div>
 
-                  <button
-                    type="submit"
-                    className="w-full py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-colors"
-                  >
+                  <div className="flex flex-col gap-1">
+                    <label className="text-[11px] font-medium text-foreground">
+                      Điểm đến (Tab / URL)
+                    </label>
+                    {customActionForm.targetType === "tab" ? (
+                      <select
+                        value={customActionForm.targetValue}
+                        onChange={(e) => setCustomActionForm({ ...customActionForm, targetValue: e.target.value })}
+                        className="w-full px-2.5 py-1.5 rounded-md text-xs bg-background border border-border text-foreground"
+                      >
+                        <option value="attendance">Điểm danh QR</option>
+                        <option value="classrooms">Lớp học</option>
+                        <option value="students">Hồ sơ sinh viên</option>
+                        <option value="org">Tổ chức &amp; Cơ sở</option>
+                      </select>
+                    ) : (
+                      <Input
+                        type="url"
+                        required
+                        value={customActionForm.targetValue}
+                        onChange={(e) => setCustomActionForm({ ...customActionForm, targetValue: e.target.value })}
+                        placeholder="https://..."
+                        className="h-8 text-xs bg-background"
+                      />
+                    )}
+                  </div>
+
+                  <Button type="submit" size="sm" className="w-full">
                     Lưu Thao Tác Mới
-                  </button>
+                  </Button>
                 </form>
               )}
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 flex items-center justify-between">
-              <button
+            <div className="p-3.5 border-t border-border bg-muted/20 flex items-center justify-between">
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={resetToDefaultActions}
-                className="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 font-semibold"
+                className="text-xs text-muted-foreground"
               >
-                🔄 Khôi phục mặc định
-              </button>
+                <RotateCcw className="size-3.5" data-icon="inline-start" />
+                Khôi phục mặc định
+              </Button>
 
-              <button
+              <Button
                 type="button"
+                size="sm"
                 onClick={() => {
                   setShowEditActionsModal(false);
                   setShowAddCustomForm(false);
                 }}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all"
               >
-                Hoàn Tất &amp; Lưu
-              </button>
+                Hoàn Tất
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </div>

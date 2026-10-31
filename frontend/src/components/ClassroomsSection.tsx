@@ -3,41 +3,56 @@
 import React, { useState, useEffect, useCallback, useDeferredValue, useRef } from "react";
 import { Classroom, Enrollment, Student } from "@/types";
 import { fetchApi } from "@/lib/api-client";
-import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  BookOpen,
+  Plus,
+  Search,
+  Users,
+  Calendar,
+  Zap,
+  Trash2,
+  UserPlus,
+  X,
+  GraduationCap,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ClassroomsSectionProps {
-  onSelectClassroom?: (classroom: Classroom) => void;
-  selectedClassroomId?: string | null;
+  selectedClassroomId?: string;
+  onSelectClassroom?: (cls: Classroom) => void;
   onNavigateToAttendance?: (classroomId: string) => void;
   showCreateModalDirectly?: boolean;
   onCloseCreateModal?: () => void;
 }
 
 export function ClassroomsSection({
-  onSelectClassroom,
   selectedClassroomId,
+  onSelectClassroom,
   onNavigateToAttendance,
   showCreateModalDirectly = false,
   onCloseCreateModal,
 }: ClassroomsSectionProps) {
   const toast = useToast();
-  const { currentUser } = useAuth();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [activeClassroom, setActiveClassroom] = useState<Classroom | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [allStudents, setAllStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [semesterFilter, setSemesterFilter] = useState("ALL");
 
+  // Search & Filter
+  const [searchTerm, setSearchTerm] = useState("");
   const deferredSearch = useDeferredValue(searchTerm);
+  const [semesterFilter, setSemesterFilter] = useState("ALL");
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(showCreateModalDirectly);
   const [showEnrollModal, setShowEnrollModal] = useState(false);
-  const [enrollStudentId, setEnrollStudentId] = useState("");
 
   // Create form state
   const [newClass, setNewClass] = useState({
@@ -47,16 +62,13 @@ export function ClassroomsSection({
     teacherId: "",
   });
 
-  // Stable refs for callbacks and selectedClassroomId to prevent re-fetch cascade loops
+  // Enroll state
+  const [enrollStudentId, setEnrollStudentId] = useState("");
+
   const onSelectClassroomRef = useRef(onSelectClassroom);
   useEffect(() => {
     onSelectClassroomRef.current = onSelectClassroom;
   }, [onSelectClassroom]);
-
-  const selectedClassroomIdRef = useRef(selectedClassroomId);
-  useEffect(() => {
-    selectedClassroomIdRef.current = selectedClassroomId;
-  }, [selectedClassroomId]);
 
   useEffect(() => {
     if (showCreateModalDirectly) {
@@ -64,69 +76,44 @@ export function ClassroomsSection({
     }
   }, [showCreateModalDirectly]);
 
-  // Load classrooms: only runs on mount or when active organization changes
+  // Load classrooms & students
   const loadData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const clsData = await fetchApi<Classroom[]>("/classrooms");
-      const list = clsData || [];
-      setClassrooms(list);
+      const [clsData, stData] = await Promise.all([
+        fetchApi<Classroom[]>("/classrooms"),
+        fetchApi<Student[]>("/students"),
+      ]);
+      setClassrooms(clsData);
+      setAllStudents(stData);
 
-      if (list.length > 0) {
-        setActiveClassroom((prev) => {
-          // If previous selection is still valid in list, keep it
-          if (prev && list.some((c) => c.id === prev.id)) {
-            return list.find((c) => c.id === prev.id) || prev;
-          }
-          const targetId = selectedClassroomIdRef.current;
-          const found = targetId ? list.find((c) => c.id === targetId) : null;
-          const initial = found || list[0];
-          if (onSelectClassroomRef.current && initial.id !== targetId) {
-            onSelectClassroomRef.current(initial);
-          }
-          return initial;
-        });
-      } else {
-        setActiveClassroom(null);
-      }
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Lỗi khi tải dữ liệu lớp học", "Lỗi");
+      setActiveClassroom((prev) => {
+        if (selectedClassroomId) {
+          const match = clsData.find((c) => c.id === selectedClassroomId);
+          if (match) return match;
+        }
+        if (prev) {
+          const stillExists = clsData.find((c) => c.id === prev.id);
+          if (stillExists) return stillExists;
+        }
+        return clsData.length > 0 ? clsData[0] : null;
+      });
+    } catch {
+      // Ignored
     } finally {
       setIsLoading(false);
     }
-  }, [currentUser?.activeOrganizationId, toast]);
+  }, [selectedClassroomId]);
 
-  // Sync activeClassroom when selectedClassroomId prop changes from outside without re-fetching
-  useEffect(() => {
-    if (selectedClassroomId && classrooms.length > 0) {
-      if (activeClassroom?.id !== selectedClassroomId) {
-        const match = classrooms.find((c) => c.id === selectedClassroomId);
-        if (match) {
-          setActiveClassroom(match);
-        }
-      }
-    }
-  }, [selectedClassroomId, classrooms, activeClassroom?.id]);
-
-  // Lazy-load students ONLY when enroll student modal is opened
-  useEffect(() => {
-    if (showEnrollModal && allStudents.length === 0) {
-      fetchApi<Student[]>("/students")
-        .then((data) => setAllStudents(data || []))
-        .catch((err: unknown) => {
-          toast.error(err instanceof Error ? err.message : "Lỗi khi tải danh sách sinh viên", "Lỗi");
-        });
-    }
-  }, [showEnrollModal, allStudents.length, toast]);
-
-  const loadEnrollments = useCallback(async (clsId: string) => {
+  // Load enrollments for active classroom
+  const loadEnrollments = useCallback(async (classroomId: string) => {
     try {
-      const data = await fetchApi<Enrollment[]>(`/classrooms/${clsId}/students`);
-      setEnrollments(data || []);
-    } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Lỗi khi tải danh sách sinh viên lớp", "Lỗi");
+      const data = await fetchApi<Enrollment[]>(`/classrooms/${classroomId}/enrollments`);
+      setEnrollments(data);
+    } catch {
+      setEnrollments([]);
     }
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -140,11 +127,16 @@ export function ClassroomsSection({
     }
   }, [activeClassroom?.id, loadEnrollments]);
 
-  // Create Classroom
+  // Create classroom
   const handleCreateClassroom = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    if (!newClass.code.trim() || !newClass.name.trim()) {
+      toast.error("Vui lòng nhập đầy đủ mã và tên lớp học", "Thiếu thông tin");
+      return;
+    }
+
     try {
+      setIsLoading(true);
       const created = await fetchApi<Classroom>("/classrooms", {
         method: "POST",
         body: JSON.stringify({
@@ -154,67 +146,64 @@ export function ClassroomsSection({
           teacherId: newClass.teacherId.trim() || undefined,
         }),
       });
-      toast.success(`Đã tạo lớp học mới: ${created.name} (${created.code})`, "Tạo lớp thành công");
+
+      toast.success(`Đã tạo lớp ${created.code} thành công!`, "Thành công");
       setShowCreateModal(false);
       if (onCloseCreateModal) onCloseCreateModal();
       setNewClass({ code: "", name: "", semester: "2026-1", teacherId: "" });
       await loadData();
       setActiveClassroom(created);
-      if (onSelectClassroomRef.current) {
-        onSelectClassroomRef.current(created);
-      }
+      if (onSelectClassroomRef.current) onSelectClassroomRef.current(created);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Không thể tạo lớp học", "Lỗi tạo lớp");
+      const msg = err instanceof Error ? err.message : "Không thể tạo lớp học";
+      toast.error(msg, "Lỗi tạo lớp học");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Enroll Student
+  // Enroll student
   const handleEnrollStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeClassroom || !enrollStudentId) return;
-    setIsLoading(true);
+
     try {
-      await fetchApi(`/classrooms/${activeClassroom.id}/students`, {
+      setIsLoading(true);
+      await fetchApi<Enrollment>(`/classrooms/${activeClassroom.id}/enrollments`, {
         method: "POST",
         body: JSON.stringify({ studentId: enrollStudentId }),
       });
-      toast.success("Đã ghi danh sinh viên vào lớp học thành công!", "Ghi danh thành công");
+
+      const st = allStudents.find((s) => s.id === enrollStudentId);
+      toast.success(
+        `Đã thêm sinh viên ${st?.fullName || ""} vào lớp!`,
+        "Ghi danh thành công"
+      );
       setShowEnrollModal(false);
       setEnrollStudentId("");
-      loadEnrollments(activeClassroom.id);
-      // Optimistically update student count in active classroom without re-hitting /classrooms
-      setClassrooms((prev) =>
-        prev.map((c) => (c.id === activeClassroom.id ? { ...c, totalStudents: (c.totalStudents || 0) + 1 } : c))
-      );
+      await loadEnrollments(activeClassroom.id);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Ghi danh thất bại (sinh viên có thể đã tồn tại)", "Lỗi");
+      const msg = err instanceof Error ? err.message : "Không thể ghi danh sinh viên";
+      toast.error(msg, "Lỗi ghi danh");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Unenroll
+  // Unenroll student
   const handleUnenrollStudent = async (studentId: string, studentName: string) => {
     if (!activeClassroom) return;
-    if (!confirm(`Bạn có chắc muốn hủy ghi danh sinh viên "${studentName}" khỏi lớp này?`)) return;
+    if (!confirm(`Bạn có chắc muốn xóa sinh viên ${studentName} khỏi lớp này?`)) return;
+
     try {
-      await fetchApi(`/classrooms/${activeClassroom.id}/students/${studentId}`, {
+      await fetchApi<void>(`/classrooms/${activeClassroom.id}/enrollments/${studentId}`, {
         method: "DELETE",
       });
-      toast.info(`Đã rút sinh viên ${studentName} khỏi lớp`, "Hủy ghi danh");
-      loadEnrollments(activeClassroom.id);
-      // Optimistically update student count in active classroom without re-hitting /classrooms
-      setClassrooms((prev) =>
-        prev.map((c) =>
-          c.id === activeClassroom.id
-            ? { ...c, totalStudents: Math.max(0, (c.totalStudents || 1) - 1) }
-            : c
-        )
-      );
+      toast.info(`Đã xóa ${studentName} khỏi lớp`, "Đã cập nhật danh sách");
+      await loadEnrollments(activeClassroom.id);
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Lỗi khi xóa sinh viên", "Lỗi");
+      const msg = err instanceof Error ? err.message : "Không thể xóa sinh viên";
+      toast.error(msg, "Lỗi thao tác");
     }
   };
 
@@ -232,53 +221,55 @@ export function ClassroomsSection({
   const availableStudents = allStudents.filter((s) => !enrolledStudentIds.has(s.id));
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-        <div className="space-y-1">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
-            🏫 Quản Lý Lớp Học &amp; Khóa Đào Tạo
-          </h2>
-          <p className="text-xs text-slate-500">
-            Quản lý danh sách học phần, giảng viên phụ trách và danh sách sinh viên ghi danh
-          </p>
-        </div>
+      <Card className="p-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <BookOpen className="size-5 text-foreground" />
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Quản Lý Lớp Học &amp; Khóa Đào Tạo
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quản lý danh sách học phần, giảng viên phụ trách và danh sách sinh viên ghi danh
+            </p>
+          </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Tạo Lớp Học Mới
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setShowCreateModal(true)}
+              className="text-xs"
+            >
+              <Plus className="size-4" data-icon="inline-start" />
+              Tạo Lớp Học Mới
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
+          <Search className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm theo mã lớp (IT3040...) hoặc tên môn học..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500"
+            className="pl-9 h-8 text-xs bg-background"
           />
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-slate-500">Học kỳ:</span>
+          <span className="text-xs text-muted-foreground font-medium">Học kỳ:</span>
           <select
             value={semesterFilter}
             onChange={(e) => setSemesterFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+            className="px-2.5 py-1 rounded-md border border-border bg-background text-foreground text-xs"
           >
             <option value="ALL">Tất cả học kỳ</option>
             <option value="2026-1">Học kỳ 2026-1</option>
@@ -290,102 +281,105 @@ export function ClassroomsSection({
       {/* Main Grid: Classrooms Cards & Active Classroom Roster Detail */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Classroom Cards List */}
-        <div className="space-y-3">
+        <div className="flex flex-col gap-2.5">
           {filteredClassrooms.length === 0 ? (
-            <div className="p-8 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-400 italic">
+            <Card className="p-8 text-center text-xs text-muted-foreground italic shadow-2xs">
               Không tìm thấy lớp học nào phù hợp.
-            </div>
+            </Card>
           ) : (
             filteredClassrooms.map((cls) => {
               const isSelected = activeClassroom?.id === cls.id;
               return (
-                <div
+                <Card
                   key={cls.id}
                   onClick={() => {
                     setActiveClassroom(cls);
                     if (onSelectClassroomRef.current) onSelectClassroomRef.current(cls);
                   }}
-                  className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-3 ${
+                  className={cn(
+                    "p-3.5 cursor-pointer transition-colors shadow-2xs flex flex-col gap-2.5",
                     isSelected
-                      ? "bg-blue-50/80 dark:bg-blue-950/40 border-blue-500 shadow-md shadow-blue-500/10"
-                      : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 shadow-xs"
-                  }`}
+                      ? "border-foreground ring-1 ring-border bg-muted/40"
+                      : "hover:border-foreground/40"
+                  )}
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-mono text-xs font-bold text-foreground">
                         {cls.code}
                       </span>
-                      <h3 className="font-bold text-sm text-slate-900 dark:text-white mt-0.5 leading-snug">
+                      <h3 className="font-semibold text-xs text-foreground mt-0.5 truncate">
                         {cls.name}
                       </h3>
                     </div>
-                    <span className="px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-600 dark:text-slate-300">
+                    <Badge variant="outline" className="text-[10px] shrink-0 font-mono">
                       {cls.semester}
-                    </span>
+                    </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
                     <div className="flex items-center gap-1.5 truncate">
-                      <div className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold text-[10px]">
+                      <div className="size-5 rounded-full bg-muted text-foreground flex items-center justify-center font-bold text-[10px] border border-border">
                         {cls.teacherName ? cls.teacherName.charAt(0) : "G"}
                       </div>
                       <span className="truncate">{cls.teacherName || "Giảng viên chính"}</span>
                     </div>
 
-                    <span className="font-bold text-slate-700 dark:text-slate-300 tabular-nums">
-                      {cls.totalStudents ?? 0} sinh viên
+                    <span className="font-medium text-foreground tabular-nums text-[11px]">
+                      {cls.totalStudents ?? 0} SV
                     </span>
                   </div>
-                </div>
+                </Card>
               );
             })
           )}
         </div>
 
         {/* Right 2 Columns: Enrolled Student Roster Details */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 flex flex-col gap-4">
           {activeClassroom ? (
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+            <Card className="p-4 shadow-2xs flex flex-col gap-4">
               {/* Classroom Detail Banner */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                <div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                <div className="flex flex-col gap-0.5">
                   <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                    <Badge variant="outline" className="font-mono text-xs font-bold">
                       {activeClassroom.code}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px]">
                       {activeClassroom.semester}
-                    </span>
+                    </Badge>
                   </div>
-                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white mt-1">
+                  <h3 className="text-sm font-bold text-foreground mt-1">
                     {activeClassroom.name}
                   </h3>
-                  <div className="text-xs text-slate-500 mt-0.5">
-                    Giảng viên: <span className="font-semibold text-slate-700 dark:text-slate-300">{activeClassroom.teacherName || "N/A"}</span> • Sĩ số: <span className="font-semibold">{enrollments.length}</span>
+                  <div className="text-xs text-muted-foreground">
+                    Giảng viên: <span className="font-medium text-foreground">{activeClassroom.teacherName || "N/A"}</span> • Sĩ số: <span className="font-medium text-foreground">{enrollments.length}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
                     onClick={() => setShowEnrollModal(true)}
-                    className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm flex items-center gap-1.5"
+                    className="text-xs"
                   >
-                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    Ghi Danh Sinh Viên
-                  </button>
+                    <UserPlus className="size-3.5" data-icon="inline-start" />
+                    Ghi Danh
+                  </Button>
 
                   {onNavigateToAttendance && (
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => onNavigateToAttendance(activeClassroom.id)}
-                      className="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs flex items-center gap-1.5"
+                      className="text-xs"
                     >
-                      <span>⚡ Vào Điểm Danh</span>
-                    </button>
+                      <Zap className="size-3.5" data-icon="inline-start" />
+                      Vào Điểm Danh
+                    </Button>
                   )}
                 </div>
               </div>
@@ -393,46 +387,48 @@ export function ClassroomsSection({
               {/* Enrolled Students Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-200 dark:border-slate-700 font-semibold">
+                  <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
                     <tr>
-                      <th className="p-3">Mã SV</th>
-                      <th className="p-3">Họ và Tên</th>
-                      <th className="p-3">Email</th>
-                      <th className="p-3">Điện Thoại</th>
-                      <th className="p-3 text-right">Thao Tác</th>
+                      <th className="p-2.5 font-medium">Mã SV</th>
+                      <th className="p-2.5 font-medium">Họ và Tên</th>
+                      <th className="p-2.5 font-medium">Email</th>
+                      <th className="p-2.5 font-medium">Điện Thoại</th>
+                      <th className="p-2.5 text-right font-medium">Thao Tác</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-border">
                     {enrollments.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-400 italic">
+                        <td colSpan={5} className="p-8 text-center text-muted-foreground italic">
                           Chưa có sinh viên nào ghi danh vào lớp học này.
-                          Bấm nút &quot;Ghi Danh Sinh Viên&quot; để thêm sinh viên từ danh bạ.
+                          Nhấn &quot;Ghi Danh&quot; để thêm sinh viên từ danh bạ.
                         </td>
                       </tr>
                     ) : (
                       enrollments.map((enr) => (
-                        <tr key={enr.enrollmentId} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                        <tr key={enr.enrollmentId} className="hover:bg-muted/40 transition-colors">
+                          <td className="p-2.5 font-mono font-medium text-foreground">
                             {enr.studentCode}
                           </td>
-                          <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">
+                          <td className="p-2.5 font-medium text-foreground">
                             {enr.fullName}
                           </td>
-                          <td className="p-3 text-slate-600 dark:text-slate-400 font-mono">
+                          <td className="p-2.5 text-muted-foreground font-mono">
                             {enr.email}
                           </td>
-                          <td className="p-3 text-slate-500">
+                          <td className="p-2.5 text-muted-foreground">
                             {enr.phone || "-"}
                           </td>
-                          <td className="p-3 text-right">
-                            <button
+                          <td className="p-2.5 text-right">
+                            <Button
                               type="button"
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleUnenrollStudent(enr.studentId, enr.fullName)}
-                              className="px-2.5 py-1 text-rose-600 hover:text-rose-700 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg font-semibold text-[11px] transition-colors"
+                              className="h-7 text-xs text-destructive hover:bg-destructive/10"
                             >
                               Xóa khỏi lớp
-                            </button>
+                            </Button>
                           </td>
                         </tr>
                       ))
@@ -440,11 +436,11 @@ export function ClassroomsSection({
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           ) : (
-            <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 italic">
+            <Card className="p-12 text-center text-muted-foreground italic shadow-2xs">
               Chọn một lớp học ở danh sách bên trái để xem danh sách sinh viên.
-            </div>
+            </Card>
           )}
         </div>
       </div>
@@ -456,102 +452,106 @@ export function ClassroomsSection({
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-bold text-sm text-foreground">
                 Tạo Lớp Học / Học Phần Mới
               </h3>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setShowCreateModal(false);
                   if (onCloseCreateModal) onCloseCreateModal();
                 }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none"
+                className="size-7"
+                aria-label="Đóng"
               >
-                &times;
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
-            <form onSubmit={handleCreateClassroom} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <form onSubmit={handleCreateClassroom} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Mã Lớp Học / Mã Học Phần *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={newClass.code}
                   onChange={(e) => setNewClass({ ...newClass, code: e.target.value })}
                   placeholder="VD: IT3040-701234"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono uppercase"
+                  className="h-8 text-xs font-mono uppercase bg-background"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Tên Khóa Học / Môn Học *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={newClass.name}
                   onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
                   placeholder="VD: Kỹ Thuật Lập Trình Nâng Cao"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                  className="h-8 text-xs bg-background"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-foreground">
                     Học Kỳ *
                   </label>
-                  <input
+                  <Input
                     type="text"
                     required
                     value={newClass.semester}
                     onChange={(e) => setNewClass({ ...newClass, semester: e.target.value })}
                     placeholder="VD: 2026-1"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                    className="h-8 text-xs font-mono bg-background"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-foreground">
                     UUID Giảng Viên (Tùy chọn)
                   </label>
-                  <input
+                  <Input
                     type="text"
                     value={newClass.teacherId}
                     onChange={(e) => setNewClass({ ...newClass, teacherId: e.target.value })}
                     placeholder="Để trống nếu là bạn"
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono text-[11px]"
+                    className="h-8 text-xs font-mono text-[11px] bg-background"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setShowCreateModal(false);
                     if (onCloseCreateModal) onCloseCreateModal();
                   }}
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Hủy Bỏ
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={isLoading}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20"
                 >
                   {isLoading ? "Đang tạo..." : "Xác Nhận Tạo Lớp"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
 
@@ -562,38 +562,41 @@ export function ClassroomsSection({
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex flex-col">
+                <h3 className="font-bold text-sm text-foreground">
                   Ghi Danh Sinh Viên Vào Lớp
                 </h3>
-                <p className="text-[11px] text-slate-500 mt-0.5">{activeClassroom.name}</p>
+                <p className="text-[11px] text-muted-foreground">{activeClassroom.name}</p>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowEnrollModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none"
+                className="size-7"
+                aria-label="Đóng"
               >
-                &times;
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
-            <form onSubmit={handleEnrollStudent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <form onSubmit={handleEnrollStudent} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Chọn Sinh Viên từ Danh Bạ *
                 </label>
                 {availableStudents.length === 0 ? (
-                  <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 text-xs">
-                    Tất cả sinh viên trong hệ thống đã được ghi danh vào lớp này, hoặc chưa có sinh viên nào. Hãy thêm sinh viên mới ở mục Hồ Sơ Sinh Viên.
+                  <div className="p-3 rounded-md bg-muted text-muted-foreground text-xs">
+                    Tất cả sinh viên trong hệ thống đã được ghi danh vào lớp này, hoặc chưa có sinh viên nào.
                   </div>
                 ) : (
                   <select
                     required
                     value={enrollStudentId}
                     onChange={(e) => setEnrollStudentId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium"
+                    className="w-full px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground text-xs"
                   >
                     <option value="">-- Chọn sinh viên cần thêm --</option>
                     {availableStudents.map((st) => (
@@ -605,24 +608,25 @@ export function ClassroomsSection({
                 )}
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowEnrollModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Hủy Bỏ
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={isLoading || !enrollStudentId}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-blue-500/20"
                 >
                   {isLoading ? "Đang ghi danh..." : "Ghi Danh"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

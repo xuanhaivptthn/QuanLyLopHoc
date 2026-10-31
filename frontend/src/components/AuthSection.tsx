@@ -1,50 +1,47 @@
 "use client";
 
 import React, { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { fetchApi } from "@/lib/api-client";
 import { AuthResponse, User } from "@/types";
-import { fetchApi, setStoredToken } from "@/lib/api-client";
 import { useToast } from "@/lib/toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Shield } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type AuthTab = "login" | "teacher" | "center" | "accept-invite";
 
 interface AuthSectionProps {
-  currentUser: User | null;
-  onUserChange: (user: User | null) => void;
   onClose?: () => void;
 }
 
-export function AuthSection({ currentUser, onUserChange, onClose }: AuthSectionProps) {
+export function AuthSection({ onClose }: AuthSectionProps) {
+  const { login } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<"login" | "teacher" | "center" | "accept-invite">("login");
+  const [activeTab, setActiveTab] = useState<AuthTab>("login");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Forms
+  // Login form
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+
+  // Solo Teacher register
   const [teacherForm, setTeacherForm] = useState({ fullName: "", email: "", password: "" });
+
+  // Center admin register
   const [centerForm, setCenterForm] = useState({
     centerName: "",
     centerCode: "",
     adminFullName: "",
     adminEmail: "",
     adminPassword: "",
-    contactEmail: "",
-    contactPhone: "",
   });
-  const [inviteForm, setInviteForm] = useState({ token: "", fullName: "", password: "" });
 
-  const handleLoginSuccess = (res: AuthResponse) => {
-    setStoredToken(res.token);
-    const user: User = {
-      id: res.userId,
-      email: res.email,
-      fullName: res.fullName,
-      role: res.role,
-      activeOrganizationId: res.activeOrganizationId,
-      activeOrganizationName: res.activeOrganizationName,
-    };
-    onUserChange(user);
-    toast.success(`Chào mừng ${res.fullName} (${res.role})!`, "Đăng nhập thành công");
-    if (onClose) onClose();
-  };
+  // Accept Invite form
+  const [inviteForm, setInviteForm] = useState({ token: "", fullName: "", password: "" });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,9 +51,21 @@ export function AuthSection({ currentUser, onUserChange, onClose }: AuthSectionP
         method: "POST",
         body: JSON.stringify(loginForm),
       });
-      handleLoginSuccess(res);
+
+      const user: User = {
+        id: res.userId,
+        email: res.email,
+        fullName: res.fullName,
+        role: res.role,
+        activeOrganizationId: res.activeOrganizationId,
+        activeOrganizationName: res.activeOrganizationName,
+      };
+
+      login(res.token, user);
+      toast.success(`Chào mừng ${res.fullName}!`, "Đăng nhập thành công");
+      if (onClose) onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Đăng nhập không thành công", "Lỗi đăng nhập");
+      toast.error(err instanceof Error ? err.message : "Đăng nhập thất bại", "Lỗi xác thực");
     } finally {
       setIsLoading(false);
     }
@@ -70,9 +79,19 @@ export function AuthSection({ currentUser, onUserChange, onClose }: AuthSectionP
         method: "POST",
         body: JSON.stringify(teacherForm),
       });
-      handleLoginSuccess(res);
+
+      const user: User = {
+        id: res.userId,
+        email: res.email,
+        fullName: res.fullName,
+        role: res.role,
+      };
+
+      login(res.token, user);
+      toast.success(`Đã tạo tài khoản giảng viên: ${res.fullName}!`, "Đăng ký thành công");
+      if (onClose) onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Đăng ký giảng viên thất bại", "Lỗi");
+      toast.error(err instanceof Error ? err.message : "Đăng ký thất bại", "Lỗi");
     } finally {
       setIsLoading(false);
     }
@@ -84,11 +103,29 @@ export function AuthSection({ currentUser, onUserChange, onClose }: AuthSectionP
     try {
       const res = await fetchApi<AuthResponse>("/auth/register-center", {
         method: "POST",
-        body: JSON.stringify(centerForm),
+        body: JSON.stringify({
+          centerName: centerForm.centerName.trim(),
+          centerCode: centerForm.centerCode.trim().toLowerCase(),
+          adminFullName: centerForm.adminFullName.trim(),
+          adminEmail: centerForm.adminEmail.trim().toLowerCase(),
+          adminPassword: centerForm.adminPassword,
+        }),
       });
-      handleLoginSuccess(res);
+
+      const user: User = {
+        id: res.userId,
+        email: res.email,
+        fullName: res.fullName,
+        role: res.role,
+        activeOrganizationId: res.activeOrganizationId,
+        activeOrganizationName: res.activeOrganizationName,
+      };
+
+      login(res.token, user);
+      toast.success(`Đã khởi tạo trung tâm ${centerForm.centerName}!`, "Đăng ký thành công");
+      if (onClose) onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Đăng ký trung tâm thất bại", "Lỗi");
+      toast.error(err instanceof Error ? err.message : "Đăng ký thất bại", "Lỗi");
     } finally {
       setIsLoading(false);
     }
@@ -98,79 +135,96 @@ export function AuthSection({ currentUser, onUserChange, onClose }: AuthSectionP
     e.preventDefault();
     setIsLoading(true);
     try {
-      const res = await fetchApi<AuthResponse>("/auth/accept-invite", {
+      const res = await fetchApi<AuthResponse>("/auth/accept-invitation", {
         method: "POST",
-        body: JSON.stringify(inviteForm),
+        body: JSON.stringify({
+          token: inviteForm.token.trim(),
+          fullName: inviteForm.fullName.trim(),
+          password: inviteForm.password,
+        }),
       });
-      handleLoginSuccess(res);
+
+      const user: User = {
+        id: res.userId,
+        email: res.email,
+        fullName: res.fullName,
+        role: res.role,
+        activeOrganizationId: res.activeOrganizationId,
+        activeOrganizationName: res.activeOrganizationName,
+      };
+
+      login(res.token, user);
+      toast.success("Kích hoạt tài khoản và tham gia tổ chức thành công!", "Chào mừng bạn");
+      if (onClose) onClose();
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Kích hoạt lời mời thất bại", "Lỗi");
+      toast.error(err instanceof Error ? err.message : "Kích hoạt thất bại", "Lỗi kích hoạt");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-lg mx-auto bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
+    <Card className="w-full max-w-lg mx-auto shadow-2xl p-6 sm:p-8 flex flex-col gap-6">
       {/* Brand Header */}
-      <div className="text-center space-y-1.5">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-violet-500 text-white flex items-center justify-center mx-auto shadow-md shadow-blue-500/25">
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-          </svg>
+      <div className="text-center flex flex-col items-center gap-1.5">
+        <div className="size-10 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
+          <Shield className="size-5" />
         </div>
-        <h2 className="text-xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+        <h2 className="text-lg font-bold tracking-tight text-foreground">
           EduAttend • Cổng Xác Thực
         </h2>
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-muted-foreground">
           Hệ thống quản lý lớp học và điểm danh bằng Dynamic QR Code
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex rounded-xl p-1 bg-slate-100 dark:bg-slate-800 text-xs font-semibold">
+      <div className="flex rounded-md p-1 bg-muted text-xs font-medium">
         <button
           type="button"
           onClick={() => setActiveTab("login")}
-          className={`flex-1 py-2 rounded-lg text-center transition-all ${
+          className={cn(
+            "flex-1 py-1.5 rounded text-center transition-colors",
             activeTab === "login"
-              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
+              ? "bg-background text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
           Đăng Nhập
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("teacher")}
-          className={`flex-1 py-2 rounded-lg text-center transition-all ${
+          className={cn(
+            "flex-1 py-1.5 rounded text-center transition-colors",
             activeTab === "teacher"
-              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
+              ? "bg-background text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
           Giảng Viên
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("center")}
-          className={`flex-1 py-2 rounded-lg text-center transition-all ${
+          className={cn(
+            "flex-1 py-1.5 rounded text-center transition-colors",
             activeTab === "center"
-              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
+              ? "bg-background text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
           Trung Tâm
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("accept-invite")}
-          className={`flex-1 py-2 rounded-lg text-center transition-all ${
+          className={cn(
+            "flex-1 py-1.5 rounded text-center transition-colors",
             activeTab === "accept-invite"
-              ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold"
-              : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
+              ? "bg-background text-foreground shadow-2xs font-semibold"
+              : "text-muted-foreground hover:text-foreground"
+          )}
         >
           Lời Mời
         </button>
@@ -178,251 +232,257 @@ export function AuthSection({ currentUser, onUserChange, onClose }: AuthSectionP
 
       {/* Tab 1: Login */}
       {activeTab === "login" && (
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <form onSubmit={handleLogin} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Email Đăng Nhập *
             </label>
-            <input
+            <Input
               type="email"
               required
               value={loginForm.email}
               onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
               placeholder="admin@hust.edu.vn"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+              className="h-8 text-xs font-mono bg-background"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Mật Khẩu *
             </label>
-            <input
+            <Input
               type="password"
               required
               value={loginForm.password}
               onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
               placeholder="••••••••"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+              className="h-8 text-xs bg-background"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
+            size="sm"
             disabled={isLoading}
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all"
+            className="w-full mt-2"
           >
             {isLoading ? "Đang xác thực..." : "Đăng Nhập"}
-          </button>
+          </Button>
         </form>
       )}
 
       {/* Tab 2: Solo Teacher Register */}
       {activeTab === "teacher" && (
-        <form onSubmit={handleRegisterTeacher} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <form onSubmit={handleRegisterTeacher} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Họ và Tên Giảng Viên *
             </label>
-            <input
+            <Input
               type="text"
               required
               value={teacherForm.fullName}
               onChange={(e) => setTeacherForm({ ...teacherForm, fullName: e.target.value })}
               placeholder="TS. Nguyễn Văn A"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+              className="h-8 text-xs bg-background"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Email Giảng Viên *
             </label>
-            <input
+            <Input
               type="email"
               required
               value={teacherForm.email}
               onChange={(e) => setTeacherForm({ ...teacherForm, email: e.target.value })}
               placeholder="teacher@univ.edu.vn"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+              className="h-8 text-xs font-mono bg-background"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Mật Khẩu Khởi Tạo *
             </label>
-            <input
+            <Input
               type="password"
               required
               value={teacherForm.password}
               onChange={(e) => setTeacherForm({ ...teacherForm, password: e.target.value })}
               placeholder="Tối thiểu 6 ký tự"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+              className="h-8 text-xs bg-background"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
+            size="sm"
             disabled={isLoading}
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all"
+            className="w-full mt-2"
           >
             {isLoading ? "Đang xử lý..." : "Đăng Ký Giảng Viên"}
-          </button>
+          </Button>
         </form>
       )}
 
       {/* Tab 3: Center Admin Register */}
       {activeTab === "center" && (
-        <form onSubmit={handleRegisterCenter} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <form onSubmit={handleRegisterCenter} className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-foreground">
                 Tên Trường / Trung Tâm *
               </label>
-              <input
+              <Input
                 type="text"
                 required
                 value={centerForm.centerName}
                 onChange={(e) => setCenterForm({ ...centerForm, centerName: e.target.value })}
                 placeholder="ĐH Bách Khoa"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                className="h-8 text-xs bg-background"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-foreground">
                 Mã Trung Tâm *
               </label>
-              <input
+              <Input
                 type="text"
                 required
                 value={centerForm.centerCode}
                 onChange={(e) => setCenterForm({ ...centerForm, centerCode: e.target.value })}
                 placeholder="HUST-SOICT"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono uppercase"
+                className="h-8 text-xs font-mono uppercase bg-background"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Họ Tên Quản Trị Viên *
             </label>
-            <input
+            <Input
               type="text"
               required
               value={centerForm.adminFullName}
               onChange={(e) => setCenterForm({ ...centerForm, adminFullName: e.target.value })}
               placeholder="Nguyễn Văn Quản Trị"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+              className="h-8 text-xs bg-background"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-foreground">
                 Email Quản Trị *
               </label>
-              <input
+              <Input
                 type="email"
                 required
                 value={centerForm.adminEmail}
                 onChange={(e) => setCenterForm({ ...centerForm, adminEmail: e.target.value })}
                 placeholder="admin@school.edu.vn"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                className="h-8 text-xs font-mono bg-background"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-foreground">
                 Mật Khẩu *
               </label>
-              <input
+              <Input
                 type="password"
                 required
                 value={centerForm.adminPassword}
                 onChange={(e) => setCenterForm({ ...centerForm, adminPassword: e.target.value })}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                className="h-8 text-xs bg-background"
               />
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
+            size="sm"
             disabled={isLoading}
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all"
+            className="w-full mt-2"
           >
-            {isLoading ? "Đang khởi tạo tổ chức..." : "Đăng Ký Trung Tâm & Quản Trị"}
-          </button>
+            {isLoading ? "Đang khởi tạo..." : "Đăng Ký Trung Tâm & Quản Trị"}
+          </Button>
         </form>
       )}
 
       {/* Tab 4: Accept Invite */}
       {activeTab === "accept-invite" && (
-        <form onSubmit={handleAcceptInvite} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+        <form onSubmit={handleAcceptInvite} className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Mã Token Lời Mời *
             </label>
-            <input
+            <Input
               type="text"
               required
               value={inviteForm.token}
               onChange={(e) => setInviteForm({ ...inviteForm, token: e.target.value })}
               placeholder="Dán token mời nhận từ email..."
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+              className="h-8 text-xs font-mono bg-background"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Họ và Tên Của Bạn *
             </label>
-            <input
+            <Input
               type="text"
               required
               value={inviteForm.fullName}
               onChange={(e) => setInviteForm({ ...inviteForm, fullName: e.target.value })}
               placeholder="Nguyễn Văn Giảng Viên"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+              className="h-8 text-xs bg-background"
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-foreground">
               Thiết Lập Mật Khẩu *
             </label>
-            <input
+            <Input
               type="password"
               required
               value={inviteForm.password}
               onChange={(e) => setInviteForm({ ...inviteForm, password: e.target.value })}
               placeholder="••••••••"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+              className="h-8 text-xs bg-background"
             />
           </div>
 
-          <button
+          <Button
             type="submit"
+            size="sm"
             disabled={isLoading}
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all"
+            className="w-full mt-2"
           >
             {isLoading ? "Đang xác thực..." : "Kích Hoạt Tài Khoản"}
-          </button>
+          </Button>
         </form>
       )}
 
       {onClose && (
-        <div className="pt-2 text-center border-t border-slate-100 dark:border-slate-800">
-          <button
+        <div className="pt-2 text-center border-t border-border">
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-semibold"
+            className="text-xs text-muted-foreground"
           >
             Đóng cửa sổ
-          </button>
+          </Button>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

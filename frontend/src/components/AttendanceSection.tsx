@@ -12,6 +12,26 @@ import {
 import { fetchApi } from "@/lib/api-client";
 import { QrCodeView } from "@/components/QrCodeView";
 import { useToast } from "@/lib/toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Zap,
+  Smartphone,
+  Calendar,
+  Clock,
+  Maximize2,
+  Minimize2,
+  Copy,
+  Plus,
+  RefreshCw,
+  Check,
+  CheckCircle2,
+  Save,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AttendanceSectionProps {
   initialClassroomId?: string | null;
@@ -282,94 +302,94 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
   const currentClassroom = classrooms.find((c) => c.id === selectedClassroomId);
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Header and Classroom / Session Selectors */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-        <div className="space-y-1">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <span>⚡ Studio Điểm Danh &amp; Dynamic QR</span>
-          </h2>
-          <p className="text-xs text-slate-500">
-            Mã QR xoay vòng 30s chống gian lận, chế độ máy chiếu giảng đường và sổ điểm danh trực tiếp
-          </p>
-        </div>
-
-        {/* Selectors */}
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Select Classroom */}
-          <div className="flex items-center gap-2">
-            <label htmlFor="select-class" className="text-xs font-semibold text-slate-500">
-              Lớp:
-            </label>
-            <select
-              id="select-class"
-              value={selectedClassroomId}
-              onChange={(e) => {
-                const val = e.target.value;
-                startTransition(() => {
-                  setSelectedClassroomId(val);
-                });
-              }}
-              className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-800 dark:text-slate-200"
-            >
-              {classrooms.map((cls) => (
-                <option key={cls.id} value={cls.id}>
-                  {cls.code} - {cls.name}
-                </option>
-              ))}
-            </select>
+      <Card className="p-4 shadow-2xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Zap className="size-5 text-foreground" />
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Studio Điểm Danh &amp; Dynamic QR
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mã QR xoay vòng 30s chống gian lận, chế độ máy chiếu giảng đường và sổ điểm danh trực tiếp
+            </p>
           </div>
 
-          {/* New Session Button */}
-          <button
-            type="button"
-            onClick={() => setShowCreateSessionModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-sm"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Tạo Ca Học
-          </button>
+          {/* Selectors */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label htmlFor="select-class" className="text-xs font-medium text-muted-foreground">
+                Lớp:
+              </label>
+              <select
+                id="select-class"
+                value={selectedClassroomId}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  startTransition(() => {
+                    setSelectedClassroomId(val);
+                  });
+                }}
+                className="px-2.5 py-1 rounded-md border border-border bg-background text-foreground text-xs"
+              >
+                {classrooms.map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.code} - {cls.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setShowCreateSessionModal(true)}
+              className="text-xs"
+            >
+              <Plus className="size-3.5" data-icon="inline-start" />
+              Tạo Ca Học
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* Sessions Horizontal Scroller */}
       {sessions.length > 0 && (
-        <div className="flex items-center gap-3 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
           {sessions.map((s) => {
             const isSelected = activeSession?.id === s.id;
             return (
-              <button
+              <Button
                 key={s.id}
                 type="button"
+                variant={isSelected ? "default" : "outline"}
                 onClick={() => setActiveSession(s)}
-                className={`flex-shrink-0 flex items-center gap-3 px-4 py-3 rounded-2xl border text-left transition-all ${
-                  isSelected
-                    ? "bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25"
-                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                }`}
+                className="h-auto py-2 px-3 text-left shrink-0 rounded-lg flex flex-col items-start gap-1"
               >
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-xs font-bold">{s.sessionDate}</span>
-                    <span
-                      className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold uppercase ${
-                        isSelected
-                          ? "bg-white/20 text-white"
-                          : s.status === "ACTIVE"
-                          ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400"
-                      }`}
-                    >
-                      {s.status}
-                    </span>
-                  </div>
-                  <span className={`text-xs mt-0.5 ${isSelected ? "text-blue-100" : "text-slate-500"}`}>
-                    {s.startTime} - {s.endTime} • {s.totalStudents} SV
-                  </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-xs font-bold">{s.sessionDate}</span>
+                  <Badge
+                    variant={isSelected ? "outline" : s.status === "ACTIVE" ? "default" : "secondary"}
+                    className={cn(
+                      "text-[9px] px-1 py-0 uppercase font-mono",
+                      isSelected && "border-primary-foreground/30 text-primary-foreground"
+                    )}
+                  >
+                    {s.status}
+                  </Badge>
                 </div>
-              </button>
+                <span
+                  className={cn(
+                    "text-[11px] font-normal",
+                    isSelected ? "text-primary-foreground/75" : "text-muted-foreground"
+                  )}
+                >
+                  {s.startTime} - {s.endTime} • {s.totalStudents} SV
+                </span>
+              </Button>
             );
           })}
         </div>
@@ -379,35 +399,37 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
       {activeSession ? (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Dynamic QR Studio */}
-          <div className="space-y-4">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm flex flex-col items-center text-center">
-              <div className="w-full flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-4">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          <div className="flex flex-col gap-4">
+            <Card className="p-4 shadow-2xs flex flex-col items-center text-center">
+              <div className="w-full flex items-center justify-between border-b border-border pb-3 mb-3">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Mã QR Điểm Danh Trực Tiếp
                 </span>
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
+                <Badge variant="outline" className="font-mono text-[10px]">
                   {activeSession.sessionDate}
-                </span>
+                </Badge>
               </div>
 
               {/* QR Code Display */}
               {qrTokenData ? (
-                <div className="space-y-4 flex flex-col items-center">
-                  <QrCodeView value={qrTokenData.qrToken} size={220} />
+                <div className="flex flex-col items-center gap-3.5 w-full">
+                  <div className="p-3 bg-white rounded-xl border border-border shadow-xs">
+                    <QrCodeView value={qrTokenData.qrToken} size={200} />
+                  </div>
 
                   {/* Circular Countdown Progress Ring */}
                   <div className="flex items-center gap-3">
-                    <div className="relative w-12 h-12 flex items-center justify-center">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <div className="relative size-10 flex items-center justify-center">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                         <path
-                          className="text-slate-200 dark:text-slate-800"
+                          className="text-muted"
                           strokeWidth="3.5"
                           stroke="currentColor"
                           fill="none"
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                         <path
-                          className={qrSecondsLeft <= 5 ? "text-rose-500" : "text-blue-600 dark:text-blue-400"}
+                          className={qrSecondsLeft <= 5 ? "text-destructive" : "text-foreground"}
                           strokeDasharray={`${(qrSecondsLeft / 30) * 100}, 100`}
                           strokeWidth="3.5"
                           strokeLinecap="round"
@@ -416,176 +438,183 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                         />
                       </svg>
-                      <span className="absolute font-mono font-bold text-xs tabular-nums text-slate-900 dark:text-white">
+                      <span className="absolute font-mono font-bold text-xs tabular-nums text-foreground">
                         {qrSecondsLeft}s
                       </span>
                     </div>
 
                     <div className="text-left">
-                      <div className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      <div className="text-xs font-semibold text-foreground">
                         {qrSecondsLeft > 0 ? "Mã đang hiệu lực" : "Hết hạn"}
                       </div>
-                      <div className="text-[11px] text-slate-500">
-                        {autoRefreshQr ? "Tự động làm mới khi hết giờ" : "Tự động tắt"}
+                      <div className="text-[11px] text-muted-foreground">
+                        {autoRefreshQr ? "Tự động đổi mới 30s" : "Chế độ thủ công"}
                       </div>
                     </div>
                   </div>
 
                   {/* Token String Preview with Copy */}
-                  <div className="w-full flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                  <div className="w-full flex items-center gap-1.5 p-1.5 rounded-md bg-muted/50 border border-border">
                     <input
                       type="text"
                       readOnly
                       value={qrTokenData.qrToken}
-                      className="flex-1 bg-transparent font-mono text-[11px] text-slate-600 dark:text-slate-300 select-all truncate"
+                      className="flex-1 bg-transparent font-mono text-[11px] text-muted-foreground select-all truncate px-1"
                     />
-                    <button
+                    <Button
                       type="button"
+                      variant="outline"
+                      size="sm"
                       onClick={() => {
                         navigator.clipboard.writeText(qrTokenData.qrToken);
                         toast.success("Đã sao chép mã Token vào clipboard!", "Đã sao chép");
                       }}
-                      className="px-2 py-1 rounded bg-white dark:bg-slate-700 text-[10px] font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600 hover:bg-slate-100"
+                      className="h-6 text-[10px] px-2"
                     >
+                      <Copy className="size-3" data-icon="inline-start" />
                       Copy
-                    </button>
+                    </Button>
                   </div>
                 </div>
               ) : (
-                <div className="py-12 flex flex-col items-center justify-center space-y-3">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                    </svg>
+                <div className="py-10 flex flex-col items-center justify-center gap-2">
+                  <div className="size-12 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
+                    <Zap className="size-6" />
                   </div>
-                  <span className="text-xs text-slate-500 font-medium">
+                  <span className="text-xs text-muted-foreground">
                     Chưa kích hoạt mã QR cho ca học này
                   </span>
                 </div>
               )}
 
               {/* Action Buttons for QR */}
-              <div className="w-full mt-4 space-y-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="w-full mt-4 flex flex-col gap-2 pt-3 border-t border-border">
+                <Button
                   type="button"
                   onClick={handleGenerateQr}
-                  className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2"
+                  className="w-full text-xs"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
+                  <RefreshCw className="size-3.5" data-icon="inline-start" />
                   {qrTokenData ? "Làm Mới Mã QR (Reset 30s)" : "Tạo & Mở Dynamic QR"}
-                </button>
+                </Button>
 
                 {qrTokenData && (
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
                     onClick={() => setIsProjectorMode(true)}
-                    className="w-full py-2 px-4 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-semibold text-xs transition-colors flex items-center justify-center gap-2"
+                    className="w-full text-xs"
                   >
-                    <svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                    Bật Chế Độ Máy Chiếu Giảng Đường
-                  </button>
+                    <Maximize2 className="size-3.5" data-icon="inline-start" />
+                    Chế Độ Máy Chiếu Giảng Đường
+                  </Button>
                 )}
 
-                <label className="flex items-center justify-center gap-2 text-xs text-slate-500 cursor-pointer pt-1">
+                <label className="flex items-center justify-center gap-2 text-xs text-muted-foreground cursor-pointer pt-1">
                   <input
                     type="checkbox"
                     checked={autoRefreshQr}
                     onChange={(e) => setAutoRefreshQr(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500"
+                    className="size-3.5 rounded border-border text-foreground focus:ring-ring"
                   />
                   <span>Tự động quay vòng mã mỗi 30s</span>
                 </label>
               </div>
-            </div>
+            </Card>
 
             {/* Student Check-In Simulator */}
-            <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-3">
+            <Card className="p-4 shadow-2xs flex flex-col gap-2.5">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  📱 Mô phỏng Quét QR (Check-in Test)
+                <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                  <Smartphone className="size-3.5 text-muted-foreground" />
+                  Mô phỏng Quét QR (Check-in Test)
                 </span>
-                <span className="text-[10px] text-slate-400">Endpoint: /check-in</span>
+                <Badge variant="outline" className="text-[10px] font-mono">
+                  /check-in
+                </Badge>
               </div>
-              <form onSubmit={handleStudentCheckIn} className="space-y-2">
-                <input
+              <form onSubmit={handleStudentCheckIn} className="flex flex-col gap-2">
+                <Input
                   type="text"
                   required
                   value={checkInQrToken}
                   onChange={(e) => setCheckInQrToken(e.target.value)}
                   placeholder="Dán mã QR Token tại đây..."
-                  className="w-full px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                  className="h-8 text-xs font-mono bg-background"
                 />
-                <button
+                <Button
                   type="submit"
+                  size="sm"
+                  variant="secondary"
                   disabled={isCheckingIn || !checkInQrToken.trim()}
-                  className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-semibold text-xs shadow-sm transition-colors"
+                  className="w-full text-xs"
                 >
                   {isCheckingIn ? "Đang xử lý..." : "Mô Phỏng Sinh Viên Quét Mã"}
-                </button>
+                </Button>
               </form>
-            </div>
+            </Card>
           </div>
 
           {/* Right 2 Columns: Live Roll-Call Roster Table */}
-          <div className="lg:col-span-2 space-y-4">
-            <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm space-y-4">
+          <div className="lg:col-span-2 flex flex-col gap-4">
+            <Card className="p-4 shadow-2xs flex flex-col gap-4">
               {/* Counters & Action Row */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold text-xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-border pb-3">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <Badge variant="secondary" className="text-xs">
                     Có mặt: {presentCount}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold text-xs">
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
                     Đi muộn: {lateCount}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 font-bold text-xs">
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
                     Vắng: {absentCount}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-lg bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 font-bold text-xs">
+                  </Badge>
+                  <Badge variant="outline" className="text-xs">
                     Có phép: {excusedCount}
-                  </span>
+                  </Badge>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={handleMarkAllPresent}
-                    className="px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-xs"
+                    className="text-xs"
                   >
-                    Đánh dấu tất cả Có mặt
-                  </button>
+                    Tất cả Có mặt
+                  </Button>
 
-                  <button
+                  <Button
                     type="button"
+                    size="sm"
                     onClick={handleSaveRecords}
                     disabled={isSaving}
-                    className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-500/20"
+                    className="text-xs"
                   >
+                    <Save className="size-3.5" data-icon="inline-start" />
                     {isSaving ? "Đang lưu..." : "Lưu Kết Quả"}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
               {/* Roster Table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-200 dark:border-slate-700 font-semibold">
+                  <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
                     <tr>
-                      <th className="p-3">Mã SV</th>
-                      <th className="p-3">Họ và Tên</th>
-                      <th className="p-3">Thời Gian Quét</th>
-                      <th className="p-3">Trạng Thái</th>
-                      <th className="p-3">Ghi Chú</th>
+                      <th className="p-2.5 font-medium">Mã SV</th>
+                      <th className="p-2.5 font-medium">Họ và Tên</th>
+                      <th className="p-2.5 font-medium">Thời Gian Quét</th>
+                      <th className="p-2.5 font-medium">Trạng Thái</th>
+                      <th className="p-2.5 font-medium">Ghi Chú</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-border">
                     {records.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="p-8 text-center text-slate-400 italic">
+                        <td colSpan={5} className="p-8 text-center text-muted-foreground italic">
                           Chưa có sinh viên trong ca học này. Hãy ghi danh sinh viên vào lớp học.
                         </td>
                       </tr>
@@ -595,72 +624,76 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
                         const currentRemarks = localRecords[r.id]?.remarks ?? r.remarks ?? "";
 
                         return (
-                          <tr key={r.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                            <td className="p-3 font-mono font-bold text-blue-600 dark:text-blue-400">
+                          <tr key={r.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="p-2.5 font-mono font-medium text-foreground">
                               {r.studentCode}
                             </td>
-                            <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">
+                            <td className="p-2.5 font-medium text-foreground">
                               {r.studentName}
                             </td>
-                            <td className="p-3 text-[11px] text-slate-500">
+                            <td className="p-2.5 text-[11px] text-muted-foreground font-mono">
                               {r.checkInTime ? new Date(r.checkInTime).toLocaleTimeString() : "-"}
                             </td>
-                            <td className="p-3">
-                              {/* Status Pill Toggle Buttons */}
-                              <div className="inline-flex rounded-lg p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            <td className="p-2.5">
+                              {/* Status Toggle Buttons */}
+                              <div className="inline-flex rounded-md p-0.5 bg-muted border border-border">
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "PRESENT")}
-                                  className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                  className={cn(
+                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
                                     currentStatus === "PRESENT"
-                                      ? "bg-emerald-600 text-white shadow-xs"
-                                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                                  }`}
+                                      ? "bg-background text-foreground shadow-2xs font-bold"
+                                      : "text-muted-foreground hover:text-foreground"
+                                  )}
                                 >
                                   Có mặt
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "LATE")}
-                                  className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                  className={cn(
+                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
                                     currentStatus === "LATE"
-                                      ? "bg-amber-500 text-white shadow-xs"
-                                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                                  }`}
+                                      ? "bg-background text-foreground shadow-2xs font-bold"
+                                      : "text-muted-foreground hover:text-foreground"
+                                  )}
                                 >
                                   Muộn
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "ABSENT")}
-                                  className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                  className={cn(
+                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
                                     currentStatus === "ABSENT"
-                                      ? "bg-rose-600 text-white shadow-xs"
-                                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                                  }`}
+                                      ? "bg-background text-foreground shadow-2xs font-bold"
+                                      : "text-muted-foreground hover:text-foreground"
+                                  )}
                                 >
                                   Vắng
                                 </button>
                                 <button
                                   type="button"
                                   onClick={() => handleStatusChange(r.id, "EXCUSED")}
-                                  className={`px-2 py-1 rounded-md text-[10px] font-bold transition-all ${
+                                  className={cn(
+                                    "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
                                     currentStatus === "EXCUSED"
-                                      ? "bg-indigo-600 text-white shadow-xs"
-                                      : "text-slate-600 dark:text-slate-400 hover:text-slate-900"
-                                  }`}
+                                      ? "bg-background text-foreground shadow-2xs font-bold"
+                                      : "text-muted-foreground hover:text-foreground"
+                                  )}
                                 >
                                   Phép
                                 </button>
                               </div>
                             </td>
-                            <td className="p-3">
-                              <input
+                            <td className="p-2.5">
+                              <Input
                                 type="text"
                                 value={currentRemarks}
                                 onChange={(e) => handleRemarksChange(r.id, e.target.value)}
                                 placeholder="Ghi chú..."
-                                className="w-full px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-[11px]"
+                                className="h-7 text-[11px] bg-background"
                               />
                             </td>
                           </tr>
@@ -670,21 +703,21 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       ) : (
-        <div className="p-12 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
-          <div className="w-12 h-12 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-            📅
+        <Card className="p-12 text-center shadow-2xs flex flex-col items-center gap-3">
+          <div className="size-12 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
+            <Calendar className="size-6" />
           </div>
-          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">
+          <h3 className="font-semibold text-sm text-foreground">
             Chưa có ca học nào được chọn
           </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <p className="text-xs text-muted-foreground max-w-sm">
             Hãy chọn một ca học ở thanh bên trên hoặc bấm &quot;Tạo Ca Học&quot; để mở studio điểm danh.
           </p>
-        </div>
+        </Card>
       )}
 
       {/* Fullscreen Projector Mode Modal */}
@@ -692,62 +725,64 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-slate-950 text-white flex flex-col p-8 overflow-y-auto"
+          className="fixed inset-0 z-50 bg-background text-foreground flex flex-col p-8 overflow-y-auto"
         >
           {/* Top Bar of Projector */}
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div className="flex items-center justify-between border-b border-border pb-4">
             <div className="flex items-center gap-3">
-              <span className="w-3 h-3 rounded-full bg-emerald-400 animate-ping" />
-              <span className="text-sm font-bold text-slate-300">
+              <span className="size-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm font-semibold text-foreground">
                 Chế Độ Máy Chiếu Giảng Đường • EduAttend Projector
               </span>
             </div>
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="sm"
               onClick={() => setIsProjectorMode(false)}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-colors"
             >
+              <Minimize2 className="size-3.5" data-icon="inline-start" />
               Thoát Máy Chiếu (ESC)
-            </button>
+            </Button>
           </div>
 
           {/* Centered Large QR Screen */}
-          <div className="flex-1 flex flex-col items-center justify-center py-6 text-center space-y-6">
-            <div className="space-y-1">
-              <div className="text-blue-400 font-mono text-sm font-bold">
+          <div className="flex-1 flex flex-col items-center justify-center py-6 text-center gap-6">
+            <div className="flex flex-col gap-1">
+              <Badge variant="outline" className="font-mono text-xs font-bold mx-auto">
                 {currentClassroom?.code || activeSession.classroomCode}
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              </Badge>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mt-1">
                 {currentClassroom?.name || activeSession.classroomName}
               </h1>
-              <p className="text-slate-400 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Ngày {activeSession.sessionDate} • Ca: {activeSession.startTime} - {activeSession.endTime}
               </p>
             </div>
 
             {/* Giant QR Code */}
-            <div className="p-6 rounded-3xl bg-white shadow-2xl flex flex-col items-center">
-              <QrCodeView value={qrTokenData.qrToken} size={360} />
+            <div className="p-6 rounded-2xl bg-white text-black border border-border shadow-2xl flex flex-col items-center">
+              <QrCodeView value={qrTokenData.qrToken} size={340} />
             </div>
 
             {/* Large Countdown & Counter */}
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
-                <span className="text-4xl font-extrabold font-mono text-blue-400 tabular-nums">
+                <span className="text-4xl font-extrabold font-mono text-foreground tabular-nums">
                   {qrSecondsLeft}s
                 </span>
-                <span className="text-xs text-slate-400 max-w-[120px] text-left">
+                <span className="text-xs text-muted-foreground max-w-[130px] text-left">
                   Mã QR tự động đổi mới sau mỗi 30 giây
                 </span>
               </div>
 
-              <div className="h-8 w-px bg-slate-800" />
+              <div className="h-8 w-px bg-border" />
 
               <div className="flex items-center gap-3">
-                <span className="text-4xl font-extrabold font-mono text-emerald-400 tabular-nums">
+                <span className="text-4xl font-extrabold font-mono text-foreground tabular-nums">
                   {presentCount + lateCount} / {records.length}
                 </span>
-                <span className="text-xs text-slate-400 text-left">
+                <span className="text-xs text-muted-foreground text-left">
                   Sinh viên đã quét mã điểm danh thành công
                 </span>
               </div>
@@ -763,80 +798,84 @@ export function AttendanceSection({ initialClassroomId }: AttendanceSectionProps
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-bold text-sm text-foreground">
                 Tạo Ca Học / Ca Điểm Danh Mới
               </h3>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowCreateSessionModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none"
+                className="size-7"
+                aria-label="Đóng"
               >
-                &times;
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
-            <form onSubmit={handleCreateSession} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <form onSubmit={handleCreateSession} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Ngày Học *
                 </label>
-                <input
+                <Input
                   type="date"
                   required
                   value={sessionForm.sessionDate}
                   onChange={(e) => setSessionForm({ ...sessionForm, sessionDate: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                  className="h-8 text-xs bg-background"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-foreground">
                     Giờ Bắt Đầu *
                   </label>
-                  <input
+                  <Input
                     type="time"
                     required
                     value={sessionForm.startTime}
                     onChange={(e) => setSessionForm({ ...sessionForm, startTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                    className="h-8 text-xs font-mono bg-background"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-foreground">
                     Giờ Kết Thúc *
                   </label>
-                  <input
+                  <Input
                     type="time"
                     required
                     value={sessionForm.endTime}
                     onChange={(e) => setSessionForm({ ...sessionForm, endTime: e.target.value })}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                    className="h-8 text-xs font-mono bg-background"
                   />
                 </div>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowCreateSessionModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Hủy Bỏ
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={isLoading}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20"
                 >
                   {isLoading ? "Đang tạo..." : "Xác Nhận Tạo Ca"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

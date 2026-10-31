@@ -1,8 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
+import {
+  LayoutDashboard,
+  BookOpen,
+  QrCode,
+  Users,
+  Building2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  LogOut,
+  LogIn,
+  Check,
+  User as UserIcon,
+  Shield,
+  Zap,
+} from "lucide-react";
 import { User } from "@/types";
 import { useAuth } from "@/lib/auth-context";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 export type NavItem = "dashboard" | "classrooms" | "attendance" | "students" | "org";
 
@@ -12,8 +30,7 @@ interface NavItemConfig {
   description: string;
   badge?: number;
   badgeTag?: string;
-  badgeColor?: "blue" | "emerald" | "amber" | "violet";
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 interface SidebarProps {
@@ -46,73 +63,35 @@ export function Sidebar({
 
   const [isOrgDropdownOpen, setIsOrgDropdownOpen] = useState(false);
   const [isSwitchingOrg, setIsSwitchingOrg] = useState(false);
+
   // Group 1: Workspace / Operations
   const workspaceItems: NavItemConfig[] = [
     {
       id: "dashboard",
       label: "Tổng Quan",
       description: "Thống kê & tiến độ điểm danh",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-          />
-        </svg>
-      ),
+      icon: LayoutDashboard,
     },
     {
       id: "classrooms",
       label: "Lớp Học & Khóa",
-      description: "Danh sách lớp & danh sách sinh viên",
+      description: "Danh sách lớp & sinh viên theo lớp",
       badge: stats?.classroomsCount,
-      badgeColor: "blue",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-          />
-        </svg>
-      ),
+      icon: BookOpen,
     },
     {
       id: "attendance",
       label: "Điểm Danh QR",
       description: "Dynamic QR 30s & check-in trực tiếp",
       badgeTag: "30s LIVE",
-      badgeColor: "emerald",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-          />
-        </svg>
-      ),
+      icon: QrCode,
     },
     {
       id: "students",
       label: "Hồ Sơ Sinh Viên",
       description: "Quản lý dữ liệu & xuất danh sách",
       badge: stats?.studentsCount,
-      badgeColor: "violet",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-          />
-        </svg>
-      ),
+      icon: Users,
     },
   ];
 
@@ -123,142 +102,15 @@ export function Sidebar({
       label: "Tổ Chức & Cơ Sở",
       description: "Quản trị cơ sở, giảng viên & lời mời",
       badgeTag: "Admin",
-      badgeColor: "amber",
-      icon: (
-        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.8}
-            d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          />
-        </svg>
-      ),
+      icon: Building2,
     },
   ];
-
-  const renderBadge = (item: NavItemConfig, isActive: boolean) => {
-    if (item.badgeTag) {
-      return (
-        <span
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-            isActive
-              ? "bg-white/20 text-white"
-              : item.badgeColor === "emerald"
-              ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-              : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
-          }`}
-        >
-          {item.badgeColor === "emerald" && (
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          )}
-          {item.badgeTag}
-        </span>
-      );
-    }
-
-    if (typeof item.badge === "number" && item.badge > 0) {
-      return (
-        <span
-          className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold min-w-5 text-center transition-colors ${
-            isActive
-              ? "bg-white/25 text-white"
-              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60"
-          }`}
-        >
-          {item.badge}
-        </span>
-      );
-    }
-
-    return null;
-  };
-
-  const renderNavButton = (item: NavItemConfig) => {
-    const isActive = activeTab === item.id;
-    return (
-      <div key={item.id} className="relative group">
-        <button
-          type="button"
-          onClick={() => onSelectTab(item.id)}
-          aria-label={item.label}
-          className={`w-full flex items-center rounded-2xl font-semibold transition-all duration-200 relative overflow-hidden focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${
-            isCollapsed ? "justify-center p-3" : "gap-3 px-3.5 py-2.5"
-          } ${
-            isActive
-              ? "bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 text-white shadow-lg shadow-blue-500/25 dark:shadow-blue-900/30"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100/90 dark:hover:bg-slate-800/60 active:scale-[0.98]"
-          }`}
-        >
-          {/* Active Accent Indicator bar on the left */}
-          {isActive && !isCollapsed && (
-            <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-white/80" />
-          )}
-
-          {/* Icon with glowing backdrop on active */}
-          <div
-            className={`flex-shrink-0 transition-transform duration-200 group-hover:scale-110 ${
-              isActive
-                ? "text-white"
-                : "text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-            }`}
-          >
-            {item.icon}
-          </div>
-
-          {/* Labels & Badges for Expanded Mode */}
-          {!isCollapsed && (
-            <div className="flex-1 flex items-center justify-between min-w-0">
-              <div className="flex flex-col text-left truncate">
-                <span className="text-xs font-bold tracking-tight truncate">{item.label}</span>
-                <span
-                  className={`text-[10px] truncate ${
-                    isActive ? "text-blue-100/80 font-normal" : "text-slate-400 dark:text-slate-500 font-normal"
-                  }`}
-                >
-                  {item.description}
-                </span>
-              </div>
-              <div className="ml-2 flex-shrink-0">{renderBadge(item, isActive)}</div>
-            </div>
-          )}
-
-          {/* Collapsed dot or mini badge */}
-          {isCollapsed && ((item.badge && item.badge > 0) || item.badgeTag) && (
-            <span
-              className={`absolute top-2 right-2 w-2 h-2 rounded-full ${
-                item.badgeColor === "emerald"
-                  ? "bg-emerald-500 ring-2 ring-white dark:ring-slate-900"
-                  : "bg-blue-600 ring-2 ring-white dark:ring-slate-900"
-              }`}
-            />
-          )}
-        </button>
-
-        {/* Collapsed Floating Tooltip */}
-        {isCollapsed && (
-          <div
-            role="tooltip"
-            aria-hidden="true"
-            className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-slate-900/95 dark:bg-slate-800/95 text-white text-xs font-semibold shadow-2xl border border-slate-700/60 whitespace-nowrap z-50 pointer-events-none opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 flex items-center gap-2 backdrop-blur-md"
-          >
-            <span>{item.label}</span>
-            {renderBadge(item, false)}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   const userOrgs = currentUser?.organizations || [];
   const isAddedToCenter = userOrgs.length > 0;
   const isCenterAdmin = currentUser?.role === "CENTER_ADMIN";
   const hasActiveCenter = Boolean(currentUser?.activeOrganizationId || currentUser?.activeOrganizationName);
 
-  // Show center selector ONLY if:
-  // - Teacher has been added to 1 or more centers
-  // - OR user is a Center Admin
-  // - OR user currently has an active center set
   const showCenterSelector = Boolean(currentUser && (isAddedToCenter || isCenterAdmin || hasActiveCenter));
 
   const getRoleDisplayName = (role?: string) => {
@@ -274,52 +126,133 @@ export function Sidebar({
     }
   };
 
+  const renderNavButton = (item: NavItemConfig) => {
+    const isActive = activeTab === item.id;
+    const IconComponent = item.icon;
+
+    return (
+      <div key={item.id} className="relative group">
+        <button
+          type="button"
+          onClick={() => onSelectTab(item.id)}
+          aria-label={item.label}
+          className={cn(
+            "w-full flex items-center rounded-lg text-xs font-medium transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isCollapsed ? "justify-center p-2.5" : "gap-3 px-3 py-2",
+            isActive
+              ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+              : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
+          )}
+        >
+          <IconComponent
+            className={cn(
+              "size-4 shrink-0 transition-colors",
+              isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+            )}
+          />
+
+          {!isCollapsed && (
+            <div className="flex-1 flex items-center justify-between min-w-0">
+              <div className="flex flex-col text-left truncate">
+                <span className="truncate">{item.label}</span>
+                <span
+                  className={cn(
+                    "text-[10px] truncate font-normal",
+                    isActive ? "text-primary-foreground/75" : "text-muted-foreground/70"
+                  )}
+                >
+                  {item.description}
+                </span>
+              </div>
+
+              <div className="ml-2 shrink-0">
+                {item.badgeTag && (
+                  <Badge
+                    variant={isActive ? "outline" : "secondary"}
+                    className={cn(
+                      "text-[10px] px-1.5 py-0 h-4 font-semibold uppercase tracking-wider",
+                      isActive && "border-primary-foreground/30 text-primary-foreground"
+                    )}
+                  >
+                    {item.badgeTag}
+                  </Badge>
+                )}
+                {typeof item.badge === "number" && item.badge > 0 && (
+                  <Badge
+                    variant={isActive ? "outline" : "secondary"}
+                    className={cn(
+                      "text-[10px] px-1.5 py-0 h-4 font-mono",
+                      isActive && "border-primary-foreground/30 text-primary-foreground"
+                    )}
+                  >
+                    {item.badge}
+                  </Badge>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isCollapsed && ((item.badge && item.badge > 0) || item.badgeTag) && (
+            <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
+          )}
+        </button>
+
+        {isCollapsed && (
+          <div
+            role="tooltip"
+            aria-hidden="true"
+            className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border whitespace-nowrap z-50 pointer-events-none opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all flex items-center gap-2"
+          >
+            <span>{item.label}</span>
+            {item.badgeTag && <Badge variant="secondary" className="text-[9px] px-1 py-0">{item.badgeTag}</Badge>}
+            {typeof item.badge === "number" && item.badge > 0 && (
+              <Badge variant="secondary" className="text-[9px] px-1 py-0">{item.badge}</Badge>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <aside
-      className={`relative flex flex-col flex-shrink-0 h-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-r border-slate-200/80 dark:border-slate-800/80 shadow-xs transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] z-20 select-none ${
-        isCollapsed ? "w-[76px]" : "w-72"
-      }`}
+      className={cn(
+        "relative flex flex-col shrink-0 h-full bg-card text-card-foreground border-r border-border transition-all duration-200 z-20 select-none",
+        isCollapsed ? "w-16" : "w-64"
+      )}
     >
       {/* Brand Header */}
       <div
-        className={`h-18 flex items-center px-4 border-b border-slate-100 dark:border-slate-800/80 transition-all ${
+        className={cn(
+          "h-14 flex items-center px-3 border-b border-border transition-all",
           isCollapsed ? "justify-center" : "justify-between"
-        }`}
+        )}
       >
         <button
           type="button"
           onClick={() => onSelectTab("dashboard")}
-          className="flex items-center gap-3 overflow-hidden text-left focus:outline-hidden group"
+          className="flex items-center gap-2.5 overflow-hidden text-left focus:outline-none group"
           title="Về Trang Chủ EduAttend"
         >
-          {/* Logo Mark with modern multi-stop gradient & outer glow */}
-          <div className="relative flex-shrink-0">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-sky-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 ring-1 ring-white/30 dark:ring-white/10 group-hover:scale-105 transition-transform duration-200">
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
-                />
-              </svg>
+          {/* Logo Mark: Pure Solid Neutral with Crisp Icon */}
+          <div className="relative shrink-0">
+            <div className="size-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center shadow-xs">
+              <Shield className="size-4" />
             </div>
-            {/* Live Indicator pulse */}
-            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
           </div>
 
           {!isCollapsed && (
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="font-extrabold text-base tracking-tight text-slate-900 dark:text-white truncate">
+                <span className="font-bold text-sm tracking-tight text-foreground truncate">
                   EduAttend
                 </span>
-                <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black tracking-widest bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
-                  PRO
-                </span>
+                <Badge variant="outline" className="text-[9px] px-1 py-0 font-semibold uppercase">
+                  Pro
+                </Badge>
               </div>
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 truncate">
-                Hệ Thống Điểm Danh QR
+              <span className="text-[11px] text-muted-foreground truncate">
+                Điểm Danh Dynamic QR
               </span>
             </div>
           )}
@@ -331,29 +264,25 @@ export function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             aria-label="Thu gọn thanh điều hướng"
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Thu gọn menu"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
+            <ChevronLeft className="size-4" />
           </button>
         )}
       </div>
 
-      {/* Collapsed Expand Quick Button */}
+      {/* Collapsed Expand Button */}
       {isCollapsed && (
         <div className="flex justify-center pt-2">
           <button
             type="button"
             onClick={onToggleCollapse}
             aria-label="Mở rộng thanh điều hướng"
-            className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all duration-200"
+            className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             title="Mở rộng menu"
           >
-            <svg className="w-4 h-4 transform rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
-            </svg>
+            <ChevronRight className="size-4" />
           </button>
         </div>
       )}
@@ -365,90 +294,64 @@ export function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             aria-label={hasActiveCenter ? currentUser?.activeOrganizationName || "Trung tâm" : "Tài khoản cá nhân"}
-            className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-blue-950/60 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-sm shadow-2xs transition-colors"
+            className="size-8 rounded-lg bg-muted text-muted-foreground hover:text-foreground border border-border flex items-center justify-center shadow-xs transition-colors"
           >
-            {hasActiveCenter ? "🏛️" : "👤"}
+            {hasActiveCenter ? <Building2 className="size-4" /> : <UserIcon className="size-4" />}
           </button>
           <div
             role="tooltip"
             aria-hidden="true"
-            className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-xl bg-slate-900/95 dark:bg-slate-800/95 text-white text-xs font-semibold shadow-2xl border border-slate-700/60 whitespace-nowrap z-50 pointer-events-none opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150 backdrop-blur-md"
+            className="absolute left-full ml-2 top-1/2 -translate-y-1/2 px-2.5 py-1 rounded-md bg-popover text-popover-foreground text-xs font-medium shadow-md border border-border whitespace-nowrap z-50 pointer-events-none opacity-0 translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all"
           >
-            {hasActiveCenter ? `Cơ sở: ${currentUser?.activeOrganizationName}` : "Tài khoản cá nhân (Nhấn để mở)"}
+            {hasActiveCenter ? `Cơ sở: ${currentUser?.activeOrganizationName}` : "Tài khoản cá nhân"}
           </div>
         </div>
       )}
 
-      {/* Organization / Workspace Switcher for teachers added to centers or center admins */}
+      {/* Workspace Switcher */}
       {!isCollapsed && showCenterSelector && (
         <div className="relative mx-3 mt-3">
           <button
             type="button"
             onClick={() => setIsOrgDropdownOpen((prev) => !prev)}
             disabled={isSwitchingOrg}
-            className={`w-full p-2.5 rounded-2xl border transition-all duration-200 text-left flex items-center justify-between gap-2 shadow-2xs group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-blue-500 ${
-              hasActiveCenter
-                ? "bg-gradient-to-br from-slate-50 to-blue-50/60 dark:from-slate-800/60 dark:to-slate-900/60 border-blue-200/60 dark:border-blue-900/50 hover:border-blue-300 dark:hover:border-blue-700"
-                : "bg-gradient-to-br from-slate-50 to-indigo-50/50 dark:from-slate-800/60 dark:to-slate-900/60 border-indigo-200/60 dark:border-indigo-900/50 hover:border-indigo-300 dark:hover:border-indigo-700"
-            }`}
+            className="w-full p-2 rounded-lg border border-border bg-muted/50 hover:bg-muted transition-colors text-left flex items-center justify-between gap-2 shadow-2xs group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div
-                className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold shadow-2xs ${
-                  hasActiveCenter
-                    ? "bg-blue-600 text-white shadow-blue-500/20"
-                    : "bg-indigo-600 text-white shadow-indigo-500/20"
-                }`}
-              >
-                {hasActiveCenter ? "🏛️" : "👤"}
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="size-7 rounded-md bg-background border border-border flex items-center justify-center shrink-0 text-foreground shadow-2xs">
+                {hasActiveCenter ? <Building2 className="size-3.5" /> : <UserIcon className="size-3.5" />}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 truncate flex items-center gap-1">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground truncate">
                   {hasActiveCenter ? "Trung Tâm Trực Thuộc" : "Không Gian Cá Nhân"}
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 </span>
-                <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                <span className="text-xs font-semibold text-foreground truncate">
                   {hasActiveCenter ? currentUser?.activeOrganizationName : "Giảng Viên Độc Lập"}
                 </span>
               </div>
             </div>
 
-            {/* Switch Action indicator */}
-            <div className="flex items-center gap-1 flex-shrink-0 text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 shadow-2xs">
+            <div className="flex items-center gap-1 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors">
+              <span className="text-[10px] px-1 py-0.5 rounded bg-background border border-border text-muted-foreground">
                 {isSwitchingOrg ? "..." : "Đổi"}
               </span>
-              <svg
-                className={`w-3.5 h-3.5 transform transition-transform duration-200 ${
-                  isOrgDropdownOpen ? "rotate-180" : ""
-                }`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <ChevronDown
+                className={cn("size-3.5 transition-transform duration-200", isOrgDropdownOpen && "rotate-180")}
+              />
             </div>
           </button>
 
-          {/* Switcher Dropdown Menu */}
           {isOrgDropdownOpen && (
             <>
-              {/* Backdrop dismiss */}
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setIsOrgDropdownOpen(false)}
-              />
-
-              <div className="absolute top-full left-0 right-0 mt-2 z-50 p-2 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-2xl space-y-2 animate-in fade-in-0 zoom-in-95 duration-150">
-                <div className="px-2 pt-1 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <div className="fixed inset-0 z-40" onClick={() => setIsOrgDropdownOpen(false)} />
+              <div className="absolute top-full left-0 right-0 mt-1.5 z-50 p-1.5 rounded-lg bg-popover text-popover-foreground border border-border shadow-lg flex flex-col gap-1">
+                <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Chọn Không Gian Làm Việc
                 </div>
 
-                {/* Centers List (if user belongs to any centers) */}
                 {userOrgs.length > 0 && (
-                  <div className="space-y-1">
-                    <div className="px-2 text-[9px] font-bold text-slate-400 uppercase">
+                  <div className="flex flex-col gap-0.5">
+                    <div className="px-2 text-[10px] font-medium text-muted-foreground">
                       Trung tâm ({userOrgs.length})
                     </div>
                     {userOrgs.map((org) => {
@@ -470,35 +373,31 @@ export function Sidebar({
                               setIsSwitchingOrg(false);
                             }
                           }}
-                          className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-all ${
+                          className={cn(
+                            "w-full flex items-center justify-between p-2 rounded-md text-left text-xs transition-colors",
                             isCurrent
-                              ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold border border-blue-200 dark:border-blue-900/50"
-                              : "hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200"
-                          }`}
+                              ? "bg-secondary text-secondary-foreground font-semibold"
+                              : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                          )}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-base flex-shrink-0">🏛️</span>
+                            <Building2 className="size-3.5 shrink-0 text-muted-foreground" />
                             <div className="flex flex-col min-w-0">
                               <span className="truncate">{org.name}</span>
-                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+                              <span className="text-[10px] text-muted-foreground font-mono">
                                 Mã: {org.code}
                               </span>
                             </div>
                           </div>
-                          {isCurrent && (
-                            <span className="text-blue-600 dark:text-blue-400 font-bold text-xs flex-shrink-0">
-                              ✓
-                            </span>
-                          )}
+                          {isCurrent && <Check className="size-3.5 text-primary shrink-0 ml-1" />}
                         </button>
                       );
                     })}
                   </div>
                 )}
 
-                {/* Individual / Solo Option */}
-                <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
-                  <div className="px-2 text-[9px] font-bold text-slate-400 uppercase">
+                <div className="pt-1 mt-1 border-t border-border flex flex-col gap-0.5">
+                  <div className="px-2 text-[10px] font-medium text-muted-foreground">
                     Không gian cá nhân
                   </div>
                   <button
@@ -516,26 +415,23 @@ export function Sidebar({
                         setIsSwitchingOrg(false);
                       }
                     }}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left text-xs transition-all ${
+                    className={cn(
+                      "w-full flex items-center justify-between p-2 rounded-md text-left text-xs transition-colors",
                       !hasActiveCenter
-                        ? "bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold border border-indigo-200 dark:border-indigo-900/50"
-                        : "hover:bg-slate-100 dark:hover:bg-slate-800/80 text-slate-700 dark:text-slate-200"
-                    }`}
+                        ? "bg-secondary text-secondary-foreground font-semibold"
+                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                    )}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-base flex-shrink-0">👤</span>
+                      <UserIcon className="size-3.5 shrink-0 text-muted-foreground" />
                       <div className="flex flex-col min-w-0">
                         <span className="truncate">Tài Khoản Cá Nhân</span>
-                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                        <span className="text-[10px] text-muted-foreground">
                           Giảng viên độc lập / Lớp riêng
                         </span>
                       </div>
                     </div>
-                    {!hasActiveCenter && (
-                      <span className="text-indigo-600 dark:text-indigo-400 font-bold text-xs flex-shrink-0">
-                        ✓
-                      </span>
-                    )}
+                    {!hasActiveCenter && <Check className="size-3.5 text-primary shrink-0 ml-1" />}
                   </button>
                 </div>
               </div>
@@ -545,32 +441,24 @@ export function Sidebar({
       )}
 
       {/* Quick Attendance Action Launcher */}
-      <div className={`mt-3 ${isCollapsed ? "px-2" : "px-3"}`}>
+      <div className={cn("mt-2.5", isCollapsed ? "px-2" : "px-3")}>
         <button
           type="button"
           onClick={() => onSelectTab("attendance")}
           aria-label="Khởi tạo điểm danh QR"
-          className={`w-full flex items-center rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-[0.98] transition-all duration-200 group ${
-            isCollapsed ? "justify-center p-3" : "justify-between px-3.5 py-2.5"
-          }`}
+          className={cn(
+            "w-full flex items-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs transition-colors shadow-xs active:scale-[0.98] group",
+            isCollapsed ? "justify-center p-2.5" : "justify-between px-3 py-2"
+          )}
         >
-          <div className="flex items-center gap-2.5">
-            <span className="p-1 rounded-lg bg-white/20 text-white group-hover:rotate-12 transition-transform duration-200">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
-                />
-              </svg>
-            </span>
+          <div className="flex items-center gap-2">
+            <Zap className="size-4 shrink-0" />
             {!isCollapsed && <span>Điểm Danh Ngay</span>}
           </div>
           {!isCollapsed && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/20 font-mono tracking-tight font-extrabold">
+            <Badge variant="outline" className="text-[10px] px-1 py-0 h-4 border-primary-foreground/30 text-primary-foreground font-mono">
               30s
-            </span>
+            </Badge>
           )}
         </button>
       </div>
@@ -578,97 +466,79 @@ export function Sidebar({
       {/* Navigation Sections */}
       <nav
         aria-label="Thanh điều hướng chính"
-        className="flex-1 px-3 py-4 space-y-4 overflow-y-auto overflow-x-hidden"
+        className="flex-1 px-3 py-3 flex flex-col gap-3 overflow-y-auto overflow-x-hidden"
       >
-        {/* Workspace Group */}
-        <div className="space-y-1">
+        <div className="flex flex-col gap-1">
           {!isCollapsed && (
-            <div className="px-3 pb-1 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
               Không Gian Quản Lý
             </div>
           )}
-          <div className="space-y-1">{workspaceItems.map(renderNavButton)}</div>
+          <div className="flex flex-col gap-0.5">{workspaceItems.map(renderNavButton)}</div>
         </div>
 
-        {/* Administration Group - Only visible for Center Admin accounts under an active center */}
         {hasActiveCenter && currentUser?.role === "CENTER_ADMIN" && (
-          <div className="space-y-1 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+          <div className="flex flex-col gap-1 pt-2 border-t border-border">
             {!isCollapsed && (
-              <div className="px-3 pb-1 pt-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <div className="px-2 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Hệ Thống & Cấu Hình
               </div>
             )}
-            <div className="space-y-1">{adminItems.map(renderNavButton)}</div>
+            <div className="flex flex-col gap-0.5">{adminItems.map(renderNavButton)}</div>
           </div>
         )}
-
       </nav>
 
       {/* User / Authentication Bottom Card */}
-      <div className="p-3 border-t border-slate-100 dark:border-slate-800/80 bg-white/50 dark:bg-slate-900/50 backdrop-blur-md">
+      <div className="p-3 border-t border-border bg-card">
         {currentUser ? (
           <div
-            className={`flex items-center rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/60 dark:border-slate-700/60 transition-all ${
-              isCollapsed ? "justify-center p-2" : "justify-between p-2.5 gap-2.5"
-            }`}
+            className={cn(
+              "flex items-center rounded-lg bg-muted/40 border border-border transition-colors",
+              isCollapsed ? "justify-center p-2" : "justify-between p-2 gap-2"
+            )}
           >
-            {/* User Avatar with Presence Ring */}
-            <div className="relative flex-shrink-0">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-sm ring-1 ring-white/20">
+            <div className="relative shrink-0">
+              <div className="size-8 rounded-md bg-secondary text-secondary-foreground border border-border flex items-center justify-center font-bold text-xs">
                 {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : "U"}
               </div>
-              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-800" />
             </div>
 
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                <div className="text-xs font-semibold text-foreground truncate">
                   {currentUser.fullName || "Người dùng"}
                 </div>
                 <div className="flex items-center gap-1 mt-0.5">
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-extrabold uppercase tracking-tight">
+                  <Badge variant="secondary" className="text-[9px] px-1 py-0 h-4 font-semibold uppercase tracking-tight">
                     {getRoleDisplayName(currentUser.role)}
-                  </span>
+                  </Badge>
                 </div>
               </div>
             )}
 
-            {/* Logout Action */}
             <button
               type="button"
               onClick={onLogout}
-              className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 p-1.5 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+              className="text-muted-foreground hover:text-destructive p-1 rounded-md hover:bg-muted transition-colors"
               title="Đăng xuất khỏi hệ thống"
               aria-label="Đăng xuất"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
+              <LogOut className="size-4" />
             </button>
           </div>
         ) : (
           <button
             type="button"
             onClick={onOpenLoginModal}
-            className={`w-full flex items-center rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold text-xs transition-all duration-200 shadow-md shadow-blue-500/20 active:scale-[0.98] ${
-              isCollapsed ? "justify-center p-3" : "justify-center gap-2 px-3.5 py-2.5"
-            }`}
-            title="Đăng nhập tài khoản Giảng viên / Quản trị viên"
+            className={cn(
+              "w-full flex items-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 font-medium text-xs transition-colors shadow-xs active:scale-[0.98]",
+              isCollapsed ? "justify-center p-2.5" : "justify-center gap-2 px-3 py-2"
+            )}
+            title="Đăng nhập tài khoản"
           >
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"
-              />
-            </svg>
-            {!isCollapsed && <span>Đăng Nhập / Bắt Đầu</span>}
+            <LogIn className="size-4 shrink-0" />
+            {!isCollapsed && <span>Đăng Nhập</span>}
           </button>
         )}
       </div>

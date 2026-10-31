@@ -4,6 +4,19 @@ import React, { useState, useEffect, useCallback, useDeferredValue } from "react
 import { Student } from "@/types";
 import { fetchApi } from "@/lib/api-client";
 import { useToast } from "@/lib/toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Users,
+  UserPlus,
+  Download,
+  Search,
+  Copy,
+  X,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StudentsSectionProps {
   showAddModalDirectly?: boolean;
@@ -109,131 +122,139 @@ export function StudentsSection({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-        <div className="space-y-1">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
-            👥 Danh Bạ Hồ Sơ Sinh Viên
-          </h2>
-          <p className="text-xs text-slate-500">
-            Quản lý mã định danh, thông tin liên lạc và tài khoản điểm danh của người học
-          </p>
-        </div>
+      <Card className="p-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Users className="size-5 text-foreground" />
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Danh Bạ Hồ Sơ Sinh Viên
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quản lý mã định danh, thông tin liên lạc và tài khoản điểm danh của người học
+            </p>
+          </div>
 
-        <div className="flex items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleExportCsv}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-          >
-            <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Xuất CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleExportCsv}
+              className="text-xs"
+            >
+              <Download className="size-3.5" data-icon="inline-start" />
+              Xuất CSV
+            </Button>
 
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition-all"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Thêm Sinh Viên
-          </button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setShowAddModal(true)}
+              className="text-xs"
+            >
+              <UserPlus className="size-3.5" data-icon="inline-start" />
+              Thêm Sinh Viên
+            </Button>
+          </div>
         </div>
-      </div>
+      </Card>
 
       {/* Search & Stats Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-md">
-          <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
+          <Search className="size-3.5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Tìm theo Mã SV (2021001...), họ tên, email..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs focus:ring-2 focus:ring-blue-500"
+            placeholder="Tìm theo Mã SV, họ tên, email..."
+            className="pl-9 h-8 text-xs bg-background"
           />
         </div>
 
-        <div className="text-xs text-slate-500 font-medium">
-          Hiển thị <span className="font-bold text-slate-800 dark:text-slate-200">{filteredStudents.length}</span> / {students.length} sinh viên
+        <div className="text-xs text-muted-foreground font-medium">
+          Hiển thị <span className="font-bold text-foreground">{filteredStudents.length}</span> / {students.length} sinh viên
         </div>
       </div>
 
       {/* Students Table */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden">
+      <Card className="shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-200 dark:border-slate-700 font-semibold">
+            <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
               <tr>
-                <th className="p-3.5">Mã SV</th>
-                <th className="p-3.5">Họ và Tên</th>
-                <th className="p-3.5">Email Sinh Viên</th>
-                <th className="p-3.5">Số Điện Thoại</th>
-                <th className="p-3.5">UUID Hệ Thống</th>
-                <th className="p-3.5 text-right">Thao Tác</th>
+                <th className="p-3 font-medium">Mã SV</th>
+                <th className="p-3 font-medium">Họ và Tên</th>
+                <th className="p-3 font-medium">Email Sinh Viên</th>
+                <th className="p-3 font-medium">Số Điện Thoại</th>
+                <th className="p-3 font-medium">UUID Hệ Thống</th>
+                <th className="p-3 text-right font-medium">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 italic">
-                    Không tìm thấy sinh viên nào. Bấm &quot;Thêm Sinh Viên&quot; để bổ sung hồ sơ mới.
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
+                    Không tìm thấy sinh viên nào. Nhấn &quot;Thêm Sinh Viên&quot; để bổ sung hồ sơ mới.
                   </td>
                 </tr>
               ) : (
                 filteredStudents.map((st) => (
-                  <tr key={st.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3.5 font-mono font-bold text-blue-600 dark:text-blue-400">
+                  <tr key={st.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="p-3 font-mono font-medium text-foreground">
                       {st.studentCode}
                     </td>
-                    <td className="p-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                    <td className="p-3">
+                      <div className="flex items-center gap-2">
+                        <div className="size-6 rounded-full bg-muted text-foreground flex items-center justify-center font-bold text-[10px] shrink-0 border border-border">
                           {st.fullName ? st.fullName.charAt(0) : "S"}
                         </div>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        <span className="font-medium text-foreground">
                           {st.fullName}
                         </span>
                       </div>
                     </td>
-                    <td className="p-3.5 font-mono text-slate-600 dark:text-slate-400">
+                    <td className="p-3 font-mono text-muted-foreground">
                       {st.email}
                     </td>
-                    <td className="p-3.5 text-slate-500">
+                    <td className="p-3 text-muted-foreground">
                       {st.phone || "-"}
                     </td>
-                    <td className="p-3.5 font-mono text-[11px] text-slate-400 max-w-[140px] truncate" title={st.id}>
+                    <td className="p-3 font-mono text-[11px] text-muted-foreground max-w-[140px] truncate" title={st.id}>
                       {st.id}
                     </td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
+                    <td className="p-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(st.studentCode);
                             toast.success(`Đã chép mã SV: ${st.studentCode}`, "Sao chép");
                           }}
-                          className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
+                          className="h-6 text-[10px] px-2"
                         >
+                          <Copy className="size-3" data-icon="inline-start" />
                           Mã SV
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(st.id);
                             toast.success(`Đã chép UUID của ${st.fullName}`, "Sao chép");
                           }}
-                          className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold text-[11px]"
+                          className="h-6 text-[10px] px-2"
                         >
+                          <Copy className="size-3" data-icon="inline-start" />
                           UUID
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -242,7 +263,7 @@ export function StudentsSection({
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Add Student Modal */}
       {showAddModal && (
@@ -251,100 +272,104 @@ export function StudentsSection({
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-bold text-sm text-foreground">
                 Thêm Hồ Sơ Sinh Viên Mới
               </h3>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setShowAddModal(false);
                   if (onCloseAddModal) onCloseAddModal();
                 }}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none"
+                className="size-7"
+                aria-label="Đóng"
               >
-                &times;
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
-            <form onSubmit={handleCreateStudent} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <form onSubmit={handleCreateStudent} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Mã Số Sinh Viên (MSSV) *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={formData.studentCode}
                   onChange={(e) => setFormData({ ...formData, studentCode: e.target.value })}
                   placeholder="VD: 20261234"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono uppercase"
+                  className="h-8 text-xs font-mono uppercase bg-background"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Họ và Tên *
                 </label>
-                <input
+                <Input
                   type="text"
                   required
                   value={formData.fullName}
                   onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
                   placeholder="VD: Nguyễn Văn Anh"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs"
+                  className="h-8 text-xs bg-background"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Email Sinh Viên *
                 </label>
-                <input
+                <Input
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="anh.nv26@sis.hust.edu.vn"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                  className="h-8 text-xs font-mono bg-background"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Số Điện Thoại (Tùy chọn)
                 </label>
-                <input
+                <Input
                   type="tel"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="0987654321"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                  className="h-8 text-xs font-mono bg-background"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setShowAddModal(false);
                     if (onCloseAddModal) onCloseAddModal();
                   }}
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Hủy Bỏ
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={isLoading}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20"
                 >
                   {isLoading ? "Đang lưu..." : "Xác Nhận Thêm"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

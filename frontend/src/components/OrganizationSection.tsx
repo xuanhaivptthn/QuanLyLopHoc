@@ -5,6 +5,21 @@ import { Organization, OrganizationMember, OrganizationInvitation, OrganizationR
 import { fetchApi } from "@/lib/api-client";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Building2,
+  UserPlus,
+  Users,
+  Copy,
+  Trash2,
+  X,
+  Mail,
+  Phone,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function OrganizationSection() {
   const toast = useToast();
@@ -95,152 +110,158 @@ export function OrganizationSection() {
 
   if (!isCenterAdmin) {
     return (
-      <div className="p-8 max-w-xl mx-auto text-center space-y-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm mt-8">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-3xl shadow-xs">
-          🏛️
+      <Card className="p-8 max-w-xl mx-auto text-center shadow-2xs mt-8 flex flex-col items-center gap-3">
+        <div className="size-12 rounded-lg bg-muted text-muted-foreground flex items-center justify-center">
+          <Building2 className="size-6" />
         </div>
-        <div className="space-y-2">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+        <div className="flex flex-col gap-1.5">
+          <h2 className="text-base font-bold text-foreground">
             Tài Khoản Cá Nhân / Giảng Viên Độc Lập
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Bạn đang sử dụng tài khoản độc lập không thuộc trung tâm hay cơ sở đào tạo nào. Bạn có toàn quyền quản lý lớp học, quản lý danh sách sinh viên và tạo mã điểm danh Dynamic QR trực tiếp mà không cần cấu hình trung tâm.
           </p>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
-        <div className="space-y-1">
-          <h2 className="text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
-            🏢 Quản Lý Tổ Chức &amp; Giảng Viên (Center Admin)
-          </h2>
-          <p className="text-xs text-slate-500">
-            Quản trị trung tâm đào tạo, phân quyền trợ giảng, và gửi lời mời tài khoản giảng viên
-          </p>
-        </div>
+      <Card className="p-4 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <Building2 className="size-5 text-foreground" />
+              <h2 className="text-base font-bold tracking-tight text-foreground">
+                Quản Lý Tổ Chức &amp; Giảng Viên (Center Admin)
+              </h2>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Quản trị trung tâm đào tạo, phân quyền trợ giảng, và gửi lời mời tài khoản giảng viên
+            </p>
+          </div>
 
-        <button
-          type="button"
-          onClick={() => setShowInviteModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-md shadow-blue-500/20 transition-all"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
-          Mời Giảng Viên Mới
-        </button>
-      </div>
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => setShowInviteModal(true)}
+            className="text-xs"
+          >
+            <UserPlus className="size-3.5" data-icon="inline-start" />
+            Mời Giảng Viên Mới
+          </Button>
+        </div>
+      </Card>
 
       {/* Organization Info Card */}
       {org && (
-        <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm">
+        <Card className="p-4 shadow-2xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-extrabold text-base flex items-center justify-center shadow-md shadow-blue-500/20">
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-lg bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center shrink-0">
                 {org.code.slice(0, 2).toUpperCase()}
               </div>
-              <div>
+              <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="font-mono text-xs font-bold text-blue-600 dark:text-blue-400">
+                  <Badge variant="outline" className="font-mono text-[10px]">
                     {org.code}
-                  </span>
-                  <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  </Badge>
+                  <Badge variant="secondary" className="text-[10px]">
                     Hoạt động
-                  </span>
+                  </Badge>
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white mt-0.5">
+                <h3 className="text-sm font-bold text-foreground mt-0.5">
                   {org.name}
                 </h3>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-xs text-slate-500">
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
               {org.contactEmail && (
                 <div>
-                  <span className="block text-[10px] font-semibold uppercase text-slate-400">Email</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{org.contactEmail}</span>
+                  <span className="block text-[10px] font-medium uppercase text-muted-foreground">Email</span>
+                  <span className="font-medium text-foreground">{org.contactEmail}</span>
                 </div>
               )}
               {org.contactPhone && (
                 <div>
-                  <span className="block text-[10px] font-semibold uppercase text-slate-400">Điện thoại</span>
-                  <span className="font-medium text-slate-700 dark:text-slate-300">{org.contactPhone}</span>
+                  <span className="block text-[10px] font-medium uppercase text-muted-foreground">Điện thoại</span>
+                  <span className="font-medium text-foreground">{org.contactPhone}</span>
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Members & Staff Table */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden space-y-3 p-5">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+      <Card className="shadow-2xs overflow-hidden">
+        <div className="p-4 border-b border-border">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
             Danh Sách Giảng Viên &amp; Trợ Giảng ({members.length})
           </h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-200 dark:border-slate-700 font-semibold">
+            <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
               <tr>
-                <th className="p-3">Họ và Tên</th>
-                <th className="p-3">Email</th>
-                <th className="p-3">Vai Trò</th>
-                <th className="p-3">Trạng Thái</th>
-                <th className="p-3">Ngày Tham Gia</th>
-                <th className="p-3 text-right">Thao Tác</th>
+                <th className="p-3 font-medium">Họ và Tên</th>
+                <th className="p-3 font-medium">Email</th>
+                <th className="p-3 font-medium">Vai Trò</th>
+                <th className="p-3 font-medium">Trạng Thái</th>
+                <th className="p-3 font-medium">Ngày Tham Gia</th>
+                <th className="p-3 text-right font-medium">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {members.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-slate-400 italic">
+                  <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
                     Chưa có thành viên nào trong danh sách.
                   </td>
                 </tr>
               ) : (
                 members.map((m) => (
-                  <tr key={m.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                  <tr key={m.id} className="hover:bg-muted/30 transition-colors">
                     <td className="p-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="size-6 rounded-full bg-muted text-foreground flex items-center justify-center font-bold text-[10px] border border-border">
                           {m.fullName ? m.fullName.charAt(0) : "U"}
                         </div>
-                        <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        <span className="font-medium text-foreground">
                           {m.fullName}
                         </span>
                       </div>
                     </td>
-                    <td className="p-3 font-mono text-slate-600 dark:text-slate-400">
+                    <td className="p-3 font-mono text-muted-foreground">
                       {m.email}
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300">
+                      <Badge variant="outline" className="text-[10px]">
                         {m.role}
-                      </span>
+                      </Badge>
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                      <Badge variant="secondary" className="text-[10px]">
                         {m.status}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="p-3 text-slate-500">
+                    <td className="p-3 text-muted-foreground">
                       {new Date(m.joinedAt).toLocaleDateString()}
                     </td>
                     <td className="p-3 text-right">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleRemoveMember(m.id, m.fullName)}
-                        className="px-2.5 py-1 text-rose-600 hover:text-rose-700 dark:hover:text-rose-400 rounded-lg font-semibold text-[11px]"
+                        className="h-6 text-[10px] text-destructive hover:bg-destructive/10"
                       >
                         Gỡ bỏ
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -248,71 +269,76 @@ export function OrganizationSection() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Pending Invitations Table */}
-      <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 shadow-sm overflow-hidden space-y-3 p-5">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+      <Card className="shadow-2xs overflow-hidden">
+        <div className="p-4 border-b border-border">
+          <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
             Lời Mời Đang Chờ Giảng Viên Xác Nhận ({invitations.length})
           </h3>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 border-b border-slate-200 dark:border-slate-700 font-semibold">
+            <thead className="bg-muted/50 text-muted-foreground border-b border-border font-medium">
               <tr>
-                <th className="p-3">Email Được Mời</th>
-                <th className="p-3">Vai Trò Đề Cử</th>
-                <th className="p-3">Mã Token Lời Mời</th>
-                <th className="p-3">Hạn Kích Hoạt</th>
-                <th className="p-3 text-right">Thao Tác</th>
+                <th className="p-3 font-medium">Email Được Mời</th>
+                <th className="p-3 font-medium">Vai Trò Đề Cử</th>
+                <th className="p-3 font-medium">Mã Token Lời Mời</th>
+                <th className="p-3 font-medium">Hạn Kích Hoạt</th>
+                <th className="p-3 text-right font-medium">Thao Tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            <tbody className="divide-y divide-border">
               {invitations.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-slate-400 italic">
+                  <td colSpan={5} className="p-6 text-center text-muted-foreground italic">
                     Không có lời mời nào đang chờ kích hoạt.
                   </td>
                 </tr>
               ) : (
                 invitations.map((inv) => (
-                  <tr key={inv.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-3 font-semibold text-slate-800 dark:text-slate-200">
+                  <tr key={inv.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="p-3 font-medium text-foreground">
                       {inv.email}
                     </td>
                     <td className="p-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      <Badge variant="outline" className="text-[10px]">
                         {inv.role}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="p-3 font-mono text-[11px] text-slate-500">
+                    <td className="p-3 font-mono text-[11px] text-muted-foreground">
                       <div className="flex items-center gap-1.5">
                         <span className="truncate max-w-[120px]">{inv.token}</span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="sm"
                           onClick={() => {
                             navigator.clipboard.writeText(inv.token);
                             toast.success("Đã chép token kích hoạt!", "Sao chép");
                           }}
-                          className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-[10px] font-bold"
+                          className="h-5 text-[10px] px-1.5"
                         >
+                          <Copy className="size-3" data-icon="inline-start" />
                           Copy
-                        </button>
+                        </Button>
                       </div>
                     </td>
-                    <td className="p-3 text-slate-500">
+                    <td className="p-3 text-muted-foreground">
                       {new Date(inv.expiresAt).toLocaleDateString()}
                     </td>
                     <td className="p-3 text-right">
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={() => handleRevokeInvitation(inv.id)}
-                        className="px-2.5 py-1 text-rose-600 hover:text-rose-700 dark:hover:text-rose-400 rounded-lg font-semibold text-[11px]"
+                        className="h-6 text-[10px] text-destructive hover:bg-destructive/10"
                       >
                         Thu hồi
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 ))
@@ -320,7 +346,7 @@ export function OrganizationSection() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
 
       {/* Invite Modal */}
       {showInviteModal && (
@@ -329,43 +355,46 @@ export function OrganizationSection() {
           aria-modal="true"
           className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4"
         >
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+          <Card className="w-full max-w-md shadow-xl p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-bold text-sm text-foreground">
                 Mời Giảng Viên / Trợ Giảng Vào Tổ Chức
               </h3>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={() => setShowInviteModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg leading-none"
+                className="size-7"
+                aria-label="Đóng"
               >
-                &times;
-              </button>
+                <X className="size-4" />
+              </Button>
             </div>
 
-            <form onSubmit={handleInvite} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <form onSubmit={handleInvite} className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Email Giảng Viên *
                 </label>
-                <input
+                <Input
                   type="email"
                   required
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="teacher@example.com"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-mono"
+                  className="h-8 text-xs font-mono bg-background"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-foreground">
                   Vai Trò Trong Tổ Chức *
                 </label>
                 <select
                   value={inviteRole}
                   onChange={(e) => setInviteRole(e.target.value as OrganizationRole)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold"
+                  className="w-full px-2.5 py-1.5 rounded-md border border-border bg-background text-foreground text-xs"
                 >
                   <option value="TEACHER">TEACHER - Giảng Viên Giảng Dạy</option>
                   <option value="TA">TA - Trợ Giảng Học Phần</option>
@@ -373,24 +402,25 @@ export function OrganizationSection() {
                 </select>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-border mt-2">
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => setShowInviteModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   Hủy Bỏ
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  size="sm"
                   disabled={isLoading}
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20"
                 >
                   {isLoading ? "Đang gửi..." : "Gửi Lời Mời"}
-                </button>
+                </Button>
               </div>
             </form>
-          </div>
+          </Card>
         </div>
       )}
     </div>

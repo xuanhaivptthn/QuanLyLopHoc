@@ -128,7 +128,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans">
+    <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground font-sans">
       {/* Desktop Sidebar */}
       <div className="hidden md:flex flex-col h-full">
         <Sidebar
@@ -154,7 +154,7 @@ function AppContent() {
           aria-modal="true"
           className="fixed inset-0 z-50 flex md:hidden bg-black/60 backdrop-blur-xs"
         >
-          <div className="w-72 bg-white dark:bg-slate-900 h-full flex flex-col shadow-2xl">
+          <div className="w-72 bg-card text-card-foreground h-full flex flex-col shadow-2xl border-r border-border">
             <Sidebar
               activeTab={activeTab}
               onSelectTab={handleTabChange}
