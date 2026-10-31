@@ -48,6 +48,9 @@ public class AuthController {
     @GetMapping("/me")
     @Operation(summary = "Get currently authenticated user profile", security = @SecurityRequirement(name = "bearerAuth"))
     public ResponseEntity<UserSummaryResponse> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
+        if (principal == null) {
+            throw new com.attendance.common.exception.UnauthorizedException("User is not authenticated");
+        }
         return ResponseEntity.ok(authService.getCurrentUser(principal));
     }
 }

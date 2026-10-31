@@ -1,76 +1,273 @@
+"use client";
+
+import React, { useState, useEffect, useTransition, useCallback } from "react";
+import { Classroom, Student, AttendanceSession, User } from "@/types";
+import { fetchApi, getStoredToken, setStoredToken, subscribeToAuth } from "@/lib/api-client";
+import { ToastProvider, useToast } from "@/lib/toast";
+import { ThemeProvider } from "@/lib/theme";
+import { Sidebar, NavItem } from "@/components/Sidebar";
+import { TopBar } from "@/components/TopBar";
+import { DashboardSection } from "@/components/DashboardSection";
+import { ClassroomsSection } from "@/components/ClassroomsSection";
+import { AttendanceSection } from "@/components/AttendanceSection";
+import { StudentsSection } from "@/components/StudentsSection";
+import { OrganizationSection } from "@/components/OrganizationSection";
+import { AuthSection } from "@/components/AuthSection";
+import { ApiConsole } from "@/components/ApiConsole";
+
+function AppContent() {
+  const toast = useToast();
+  const [isPending, startTransition] = useTransition();
+
+  const [activeTab, setActiveTab] = useState<NavItem>("dashboard");
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [sessions, setSessions] = useState<AttendanceSession[]>([]);
+  const [selectedClassroom, setSelectedClassroom] = useState<Classroom | null>(null);
+
+  // UI state
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showCreateClassModal, setShowCreateClassModal] = useState(false);
+  const [showCreateStudentModal, setShowCreateStudentModal] = useState(false);
+
+  // Load user profile & core data
+  const loadInitialData = useCallback(async () => {
+    try {
+      const token = getStoredToken();
+      if (token) {
+        try {
+          const user = await fetchApi<User>("/auth/me");
+          setCurrentUser(user);
+        } catch {
+          setCurrentUser(null);
+        }
+      }
+
+      // Fetch classrooms & students for dashboard counters
+      const [clsData, stData] = await Promise.allSettled([
+        fetchApi<Classroom[]>("/classrooms"),
+        fetchApi<Student[]>("/students"),
+      ]);
+
+      if (clsData.status === "fulfilled" && clsData.value) {
+        setClassrooms(clsData.value);
+        if (clsData.value.length > 0 && !selectedClassroom) {
+          setSelectedClassroom(clsData.value[0]);
+        }
+
+        // Fetch sessions for first classroom
+        if (clsData.value.length > 0) {
+          try {
+            const sess = await fetchApi<AttendanceSession[]>(`/classrooms/${clsData.value[0].id}/sessions`);
+            setSessions(sess || []);
+          } catch {
+            // Ignored
+          }
+        }
+      }
+
+      if (stData.status === "fulfilled" && stData.value) {
+        setStudents(stData.value);
+      }
+    } catch {
+      // Ignored
+    }
+  }, [selectedClassroom]);
+
+  useEffect(() => {
+    loadInitialData();
+
+    const unsubscribe = subscribeToAuth((token) => {
+      if (!token) {
+        setCurrentUser(null);
+      } else {
+        fetchApi<User>("/auth/me")
+          .then((u) => setCurrentUser(u))
+          .catch(() => setCurrentUser(null));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [loadInitialData]);
+
+  const handleLogout = () => {
+    setStoredToken(null);
+    setCurrentUser(null);
+    toast.info("Đã đăng xuất khỏi phiên làm việc", "Đăng xuất");
+  };
+
+  const handleTabChange = (tab: NavItem) => {
+    startTransition(() => {
+      setActiveTab(tab);
+      setIsMobileMenuOpen(false);
+    });
+  };
+
+  const getTabTitle = (tab: NavItem): string => {
+    switch (tab) {
+      case "dashboard":
+        return "Tổng Quan";
+      case "classrooms":
+        return "Lớp Học & Khóa Học";
+      case "attendance":
+        return "Điểm Danh QR";
+      case "students":
+        return "Hồ Sơ Sinh Viên";
+      case "org":
+        return "Tổ Chức";
+    }
+  };
+
+  return (
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans">
+      {/* Desktop Sidebar */}
+      <div className="hidden md:flex flex-col h-full">
+        <Sidebar
+          activeTab={activeTab}
+          onSelectTab={handleTabChange}
+          currentUser={currentUser}
+          onLogout={handleLogout}
+          onOpenLoginModal={() => setShowLoginModal(true)}
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+          stats={{
+            classroomsCount: classrooms.length,
+            studentsCount: students.length,
+            sessionsCount: sessions.length,
+          }}
+        />
+      </div>
+
+      {/* Mobile Drawer Overlay */}
+      {isMobileMenuOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex md:hidden bg-black/60 backdrop-blur-xs"
+        >
+          <div className="w-72 bg-white dark:bg-slate-900 h-full flex flex-col shadow-2xl">
+            <Sidebar
+              activeTab={activeTab}
+              onSelectTab={handleTabChange}
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onOpenLoginModal={() => {
+                setShowLoginModal(true);
+                setIsMobileMenuOpen(false);
+              }}
+              isCollapsed={false}
+              onToggleCollapse={() => setIsMobileMenuOpen(false)}
+              stats={{
+                classroomsCount: classrooms.length,
+                studentsCount: students.length,
+                sessionsCount: sessions.length,
+              }}
+            />
+          </div>
+          <div className="flex-1" onClick={() => setIsMobileMenuOpen(false)} />
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <TopBar
+          currentTabName={getTabTitle(activeTab)}
+          selectedClassName={selectedClassroom ? `${selectedClassroom.code} - ${selectedClassroom.name}` : undefined}
+          onOpenNewSession={() => {
+            handleTabChange("attendance");
+          }}
+          onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
+        />
+
+        {/* Scrollable Work Area */}
+        <main
+          className={`flex-1 overflow-y-auto px-4 sm:px-8 py-6 max-w-7xl w-full mx-auto transition-opacity duration-200 ${
+            isPending ? "opacity-75" : "opacity-100"
+          }`}
+        >
+          {activeTab === "dashboard" && (
+            <DashboardSection
+              currentUser={currentUser}
+              classrooms={classrooms}
+              students={students}
+              sessions={sessions}
+              onNavigateTab={handleTabChange}
+              onSelectClassroom={(cls) => setSelectedClassroom(cls)}
+              onOpenNewClassModal={() => {
+                setShowCreateClassModal(true);
+                handleTabChange("classrooms");
+              }}
+              onOpenNewStudentModal={() => {
+                setShowCreateStudentModal(true);
+                handleTabChange("students");
+              }}
+            />
+          )}
+
+          {activeTab === "classrooms" && (
+            <ClassroomsSection
+              selectedClassroomId={selectedClassroom?.id}
+              onSelectClassroom={(cls) => setSelectedClassroom(cls)}
+              onNavigateToAttendance={(clsId) => {
+                const found = classrooms.find((c) => c.id === clsId);
+                if (found) setSelectedClassroom(found);
+                handleTabChange("attendance");
+              }}
+              showCreateModalDirectly={showCreateClassModal}
+              onCloseCreateModal={() => setShowCreateClassModal(false)}
+            />
+          )}
+
+          {activeTab === "attendance" && (
+            <AttendanceSection initialClassroomId={selectedClassroom?.id} />
+          )}
+
+          {activeTab === "students" && (
+            <StudentsSection
+              showAddModalDirectly={showCreateStudentModal}
+              onCloseAddModal={() => setShowCreateStudentModal(false)}
+            />
+          )}
+
+          {activeTab === "org" && <OrganizationSection />}
+        </main>
+      </div>
+
+      {/* Auth Modal Overlay */}
+      {showLoginModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4"
+        >
+          <AuthSection
+            currentUser={currentUser}
+            onUserChange={(u) => {
+              setCurrentUser(u);
+              setShowLoginModal(false);
+              loadInitialData();
+            }}
+            onClose={() => setShowLoginModal(false)}
+          />
+        </div>
+      )}
+
+      {/* Dockable Developer API Inspector */}
+      <ApiConsole />
+    </div>
+  );
+}
+
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
-      <header className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Quản Lý Điểm Danh
-            </span>
-          </div>
-          <nav className="flex items-center space-x-6 text-sm font-medium text-slate-600 dark:text-slate-300">
-            <a href="/" className="hover:text-blue-600 transition-colors">Trang chủ</a>
-            <a href="/classes" className="hover:text-blue-600 transition-colors">Lớp học</a>
-            <a href="/attendance" className="hover:text-blue-600 transition-colors">Điểm danh</a>
-          </nav>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Hero Section */}
-        <div className="p-8 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/5 to-transparent border border-blue-100 dark:border-blue-900/30">
-          <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Hệ Thống Quản Lý Điểm Danh Lớp Học
-          </h1>
-          <p className="mt-2 text-slate-600 dark:text-slate-400 max-w-2xl">
-            Quản lý danh sách lớp học, sinh viên, tạo ca điểm danh nhanh chóng bằng mã QR động hoặc ma trận điểm danh trực quan.
-          </p>
-
-          <div className="mt-6 flex flex-wrap gap-4">
-            <a
-              href="/attendance"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm transition"
-            >
-              Điểm danh ngay
-            </a>
-            <a
-              href="http://localhost:8080/api/swagger-ui.html"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium transition"
-            >
-              OpenAPI / Swagger API Docs
-            </a>
-          </div>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Lớp học phụ trách</div>
-            <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">--</div>
-            <div className="mt-1 text-xs text-slate-500">Đang đồng bộ từ máy chủ</div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Ca điểm danh hôm nay</div>
-            <div className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">--</div>
-            <div className="mt-1 text-xs text-slate-500">Chưa bắt đầu ca mới</div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Tỷ lệ đi học trung bình</div>
-            <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">--%</div>
-            <div className="mt-1 text-xs text-slate-500">Toàn bộ học kỳ</div>
-          </div>
-
-          <div className="p-6 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm">
-            <div className="text-sm font-medium text-slate-500 dark:text-slate-400">Cảnh báo vắng &gt; 20%</div>
-            <div className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">--</div>
-            <div className="mt-1 text-xs text-slate-500">Cần liên hệ sinh viên</div>
-          </div>
-        </div>
-      </main>
-    </div>
+    <ThemeProvider>
+      <ToastProvider>
+        <AppContent />
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

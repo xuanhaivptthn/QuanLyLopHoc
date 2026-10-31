@@ -134,3 +134,83 @@ export interface QrTokenResponse {
   expiresAt: string;
   validitySeconds: number;
 }
+
+export interface ApiLogEntry {
+  id: string;
+  timestamp: string;
+  method: string;
+  endpoint: string;
+  status: number;
+  statusText: string;
+  requestBody?: unknown;
+  responseBody?: unknown;
+  durationMs: number;
+  error?: string;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface RegisterSoloTeacherRequest {
+  email: string;
+  password: string;
+  fullName: string;
+}
+
+export interface RegisterCenterRequest {
+  centerName: string;
+  centerCode: string;
+  adminFullName: string;
+  adminEmail: string;
+  adminPassword: string;
+  contactEmail?: string;
+  contactPhone?: string;
+}
+
+export interface AcceptInviteRequest {
+  token: string;
+  password: string;
+  fullName: string;
+}
+
+export interface InviteTeacherRequest {
+  email: string;
+  role: OrganizationRole;
+}
+
+export interface CreateClassroomRequest {
+  code: string;
+  name: string;
+  semester: string;
+  teacherId?: string;
+}
+
+export interface EnrollStudentRequest {
+  studentId: string;
+}
+
+export interface CreateStudentRequest {
+  studentCode: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  avatarUrl?: string;
+}
+
+export interface CreateSessionRequest {
+  sessionDate: string;
+  startTime: string;
+  endTime: string;
+}
+
+export interface UpdateRecordItem {
+  recordId: string;
+  status: AttendanceStatus;
+  remarks?: string;
+}
+
+export interface BulkUpdateRecordsRequest {
+  records: UpdateRecordItem[];
+}
