@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast";
@@ -201,6 +202,16 @@ function LoginFormInner() {
             >
               {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
+
+            <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400">
+              Chưa có tài khoản?{" "}
+              <Link
+                href="/signup"
+                className="text-blue-600 dark:text-blue-400 font-semibold hover:underline"
+              >
+                Đăng ký
+              </Link>
+            </div>
           </form>
         </div>
       </div>

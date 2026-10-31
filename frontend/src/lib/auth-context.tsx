@@ -9,7 +9,7 @@ import React, {
   useRef,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { User } from "@/types";
+import { User, AuthResponse } from "@/types";
 import { fetchApi, getStoredToken, setStoredToken, subscribeToAuth } from "./api-client";
 import { useToast } from "./toast";
 
@@ -21,11 +21,12 @@ interface AuthContextType {
   login: (token: string, user: User, redirectPath?: string) => void;
   logout: (options?: { reason?: string; redirect?: boolean }) => void;
   refreshUser: () => Promise<User | null>;
+  switchOrganization: (organizationId: string | null) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_ROUTES = ["/login", "/auth/login"];
+const PUBLIC_ROUTES = ["/login", "/auth/login", "/signup", "/register"];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -191,6 +192,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [router, toast]
   );
+  const switchOrganization = useCallback(
+    async (organizationId: string | null) => {
+      setIsLoading(true);
+      try {
+        const res = await fetchApi<AuthResponse>("/auth/switch-organization", {
+          method: "POST",
+          body: JSON.stringify({ organizationId }),
+        });
+        setStoredToken(res.token);
+        setTokenState(res.token);
+        const updatedUser: User = {
+          id: res.userId,
+          email: res.email,
+          fullName: res.fullName,
+          role: res.role,
+          activeOrganizationId: res.activeOrganizationId,
+          activeOrganizationName: res.activeOrganizationName,
+          organizations: res.organizations,
+        };
+        setCurrentUser(updatedUser);
+        toast.success(
+          organizationId
+            ? `Đã chuyển sang không gian: ${res.activeOrganizationName}`
+            : "Đã chuyển về Tài khoản cá nhân / Giảng viên độc lập",
+          "Chuyển không gian làm việc"
+        );
+      } catch (err: unknown) {
+        toast.error(err instanceof Error ? err.message : "Không thể chuyển không gian", "Lỗi");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [toast]
+  );
 
   const isAuthenticated = !!token && !!currentUser;
 
@@ -204,6 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         refreshUser,
+        switchOrganization,
       }}
     >
       {children}

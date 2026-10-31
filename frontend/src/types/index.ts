@@ -10,6 +10,13 @@ export type AttendanceStatus = "PRESENT" | "LATE" | "ABSENT" | "EXCUSED";
 
 export type SessionStatus = "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
 
+export interface UserOrganization {
+  id: string;
+  code: string;
+  name: string;
+  role: OrganizationRole;
+}
+
 export interface User {
   id: string;
   email: string;
@@ -17,6 +24,7 @@ export interface User {
   role: Role;
   activeOrganizationId?: string | null;
   activeOrganizationName?: string | null;
+  organizations?: UserOrganization[];
 }
 
 export interface AuthResponse {
@@ -28,6 +36,7 @@ export interface AuthResponse {
   role: Role;
   activeOrganizationId?: string | null;
   activeOrganizationName?: string | null;
+  organizations?: UserOrganization[];
 }
 
 export interface Organization {

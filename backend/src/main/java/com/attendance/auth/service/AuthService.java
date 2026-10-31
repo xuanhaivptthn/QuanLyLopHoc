@@ -2,9 +2,11 @@ package com.attendance.auth.service;
 
 import com.attendance.auth.dto.*;
 import com.attendance.common.exception.BadRequestException;
+import com.attendance.common.exception.ForbiddenException;
 import com.attendance.common.exception.ResourceNotFoundException;
 import com.attendance.common.security.JwtTokenProvider;
 import com.attendance.common.security.UserPrincipal;
+import com.attendance.organization.dto.UserOrganizationDto;
 import com.attendance.organization.entity.*;
 import com.attendance.organization.repository.OrganizationInvitationRepository;
 import com.attendance.organization.repository.OrganizationMemberRepository;
@@ -22,6 +24,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.UUID;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -34,6 +39,19 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
+
+    public List<UserOrganizationDto> getUserOrganizations(UUID userId) {
+        List<OrganizationMember> memberships = organizationMemberRepository.findAllByUserIdWithOrganization(userId);
+        return memberships.stream()
+                .filter(m -> m.getStatus() == MemberStatus.ACTIVE)
+                .map(m -> UserOrganizationDto.builder()
+                        .id(m.getOrganization().getId())
+                        .code(m.getOrganization().getCode())
+                        .name(m.getOrganization().getName())
+                        .role(m.getRole())
+                        .build())
+                .toList();
+    }
 
     @Transactional
     public AuthResponse login(LoginRequest request) {
@@ -58,6 +76,7 @@ public class AuthService {
                 .role(user.getRole())
                 .activeOrganizationId(principal.getActiveOrganizationId())
                 .activeOrganizationName(orgName)
+                .organizations(getUserOrganizations(user.getId()))
                 .build();
     }
 
@@ -89,31 +108,32 @@ public class AuthService {
                 .role(user.getRole())
                 .activeOrganizationId(null)
                 .activeOrganizationName(null)
+                .organizations(List.of())
                 .build();
     }
 
     @Transactional
     public AuthResponse registerCenter(RegisterCenterRequest request) {
-        String slug = request.getCenterCode().toLowerCase().trim();
-        if (organizationRepository.existsByCode(slug)) {
-            throw new BadRequestException("Center code/slug is already taken: " + slug);
+        String adminEmail = request.getAdminEmail().toLowerCase().trim();
+        if (userRepository.existsByEmail(adminEmail)) {
+            throw new BadRequestException("Admin email is already registered: " + adminEmail);
         }
 
-        String email = request.getAdminEmail().toLowerCase().trim();
-        if (userRepository.existsByEmail(email)) {
-            throw new BadRequestException("Admin email is already registered: " + email);
+        String centerCode = request.getCenterCode().toUpperCase().trim();
+        if (organizationRepository.existsByCode(centerCode)) {
+            throw new BadRequestException("Center code is already taken: " + centerCode);
         }
 
         Organization org = Organization.builder()
-                .code(slug)
+                .code(centerCode)
                 .name(request.getCenterName().trim())
-                .contactEmail(request.getContactEmail())
-                .contactPhone(request.getContactPhone())
+                .contactEmail(request.getContactEmail() != null ? request.getContactEmail().trim() : adminEmail)
+                .contactPhone(request.getContactPhone() != null ? request.getContactPhone().trim() : null)
                 .build();
         org = organizationRepository.save(org);
 
         User adminUser = User.builder()
-                .email(email)
+                .email(adminEmail)
                 .passwordHash(passwordEncoder.encode(request.getAdminPassword()))
                 .fullName(request.getAdminFullName().trim())
                 .role(Role.CENTER_ADMIN)
@@ -133,6 +153,15 @@ public class AuthService {
         UserPrincipal principal = UserPrincipal.create(adminUser);
         String token = tokenProvider.generateToken(principal);
 
+        List<UserOrganizationDto> orgList = List.of(
+                UserOrganizationDto.builder()
+                        .id(org.getId())
+                        .code(org.getCode())
+                        .name(org.getName())
+                        .role(OrganizationRole.ADMIN)
+                        .build()
+        );
+
         return AuthResponse.builder()
                 .token(token)
                 .userId(adminUser.getId())
@@ -141,6 +170,7 @@ public class AuthService {
                 .role(adminUser.getRole())
                 .activeOrganizationId(org.getId())
                 .activeOrganizationName(org.getName())
+                .organizations(orgList)
                 .build();
     }
 
@@ -198,6 +228,7 @@ public class AuthService {
                 .role(user.getRole())
                 .activeOrganizationId(org.getId())
                 .activeOrganizationName(org.getName())
+                .organizations(getUserOrganizations(user.getId()))
                 .build();
     }
 
@@ -216,7 +247,46 @@ public class AuthService {
                 .role(user.getRole())
                 .activeOrganizationId(orgId)
                 .activeOrganizationName(orgName)
+                .organizations(getUserOrganizations(user.getId()))
                 .active(user.isActive())
+                .build();
+    }
+
+    @Transactional
+    public AuthResponse switchOrganization(UserPrincipal principal, SwitchOrganizationRequest request) {
+        User user = userRepository.findById(principal.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", principal.getId()));
+
+        Organization targetOrg = null;
+        if (request != null && request.getOrganizationId() != null) {
+            OrganizationMember membership = organizationMemberRepository
+                    .findByOrganizationIdAndUserId(request.getOrganizationId(), user.getId())
+                    .orElseThrow(() -> new ForbiddenException("You are not a member of this center"));
+
+            if (membership.getStatus() != MemberStatus.ACTIVE) {
+                throw new ForbiddenException("Your membership in this center is not active");
+            }
+            targetOrg = membership.getOrganization();
+        }
+
+        user.setActiveOrganization(targetOrg);
+        user = userRepository.save(user);
+
+        UserPrincipal newPrincipal = UserPrincipal.create(user);
+        String token = tokenProvider.generateToken(newPrincipal);
+
+        String orgName = targetOrg != null ? targetOrg.getName() : null;
+        UUID orgId = targetOrg != null ? targetOrg.getId() : null;
+
+        return AuthResponse.builder()
+                .token(token)
+                .userId(user.getId())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .role(user.getRole())
+                .activeOrganizationId(orgId)
+                .activeOrganizationName(orgName)
+                .organizations(getUserOrganizations(user.getId()))
                 .build();
     }
 }

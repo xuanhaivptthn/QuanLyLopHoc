@@ -44,28 +44,35 @@ function AppContent() {
 
       if (clsData.status === "fulfilled" && clsData.value) {
         setClassrooms(clsData.value);
-        if (clsData.value.length > 0 && !selectedClassroom) {
-          setSelectedClassroom(clsData.value[0]);
-        }
+        const newSelected = clsData.value.length > 0 ? clsData.value[0] : null;
+        setSelectedClassroom(newSelected);
 
         // Fetch sessions for first classroom
-        if (clsData.value.length > 0) {
+        if (newSelected) {
           try {
-            const sess = await fetchApi<AttendanceSession[]>(`/classrooms/${clsData.value[0].id}/sessions`);
+            const sess = await fetchApi<AttendanceSession[]>(`/classrooms/${newSelected.id}/sessions`);
             setSessions(sess || []);
           } catch {
-            // Ignored
+            setSessions([]);
           }
+        } else {
+          setSessions([]);
         }
+      } else {
+        setClassrooms([]);
+        setSelectedClassroom(null);
+        setSessions([]);
       }
 
       if (stData.status === "fulfilled" && stData.value) {
         setStudents(stData.value);
+      } else {
+        setStudents([]);
       }
     } catch {
       // Ignored
     }
-  }, [isAuthenticated, selectedClassroom]);
+  }, [isAuthenticated, currentUser?.activeOrganizationId]);
 
   useEffect(() => {
     if (isAuthenticated) {

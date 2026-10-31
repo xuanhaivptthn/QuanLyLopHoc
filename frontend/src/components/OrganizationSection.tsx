@@ -3,10 +3,14 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Organization, OrganizationMember, OrganizationInvitation, OrganizationRole } from "@/types";
 import { fetchApi } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast";
 
 export function OrganizationSection() {
   const toast = useToast();
+  const { currentUser } = useAuth();
+  const hasActiveCenter = Boolean(currentUser?.activeOrganizationId || currentUser?.activeOrganizationName);
+  const isCenterAdmin = hasActiveCenter && currentUser?.role === "CENTER_ADMIN";
 
   const [org, setOrg] = useState<Organization | null>(null);
   const [members, setMembers] = useState<OrganizationMember[]>([]);
@@ -19,6 +23,10 @@ export function OrganizationSection() {
   const [inviteRole, setInviteRole] = useState<OrganizationRole>("TEACHER");
 
   const loadData = useCallback(async () => {
+    if (!isCenterAdmin) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     try {
       const [orgRes, memRes, invRes] = await Promise.allSettled([
@@ -35,7 +43,7 @@ export function OrganizationSection() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isCenterAdmin]);
 
   useEffect(() => {
     loadData();
@@ -84,6 +92,24 @@ export function OrganizationSection() {
       toast.error(err instanceof Error ? err.message : "Lỗi khi xóa thành viên", "Lỗi");
     }
   };
+
+  if (!isCenterAdmin) {
+    return (
+      <div className="p-8 max-w-xl mx-auto text-center space-y-4 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm mt-8">
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center text-3xl shadow-xs">
+          🏛️
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+            Tài Khoản Cá Nhân / Giảng Viên Độc Lập
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            Bạn đang sử dụng tài khoản độc lập không thuộc trung tâm hay cơ sở đào tạo nào. Bạn có toàn quyền quản lý lớp học, quản lý danh sách sinh viên và tạo mã điểm danh Dynamic QR trực tiếp mà không cần cấu hình trung tâm.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

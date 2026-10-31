@@ -53,4 +53,15 @@ public class AuthController {
         }
         return ResponseEntity.ok(authService.getCurrentUser(principal));
     }
+
+    @PostMapping("/switch-organization")
+    @Operation(summary = "Switch active organization or switch back to individual account", security = @SecurityRequirement(name = "BearerAuth"))
+    public ResponseEntity<AuthResponse> switchOrganization(
+            @AuthenticationPrincipal UserPrincipal principal,
+            @RequestBody SwitchOrganizationRequest request) {
+        if (principal == null) {
+            throw new com.attendance.common.exception.UnauthorizedException("User is not authenticated");
+        }
+        return ResponseEntity.ok(authService.switchOrganization(principal, request));
+    }
 }

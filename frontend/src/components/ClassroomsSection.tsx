@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useDeferredValue } from "react";
 import { Classroom, Enrollment, Student } from "@/types";
 import { fetchApi } from "@/lib/api-client";
+import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/lib/toast";
 
 interface ClassroomsSectionProps {
@@ -21,6 +22,7 @@ export function ClassroomsSection({
   onCloseCreateModal,
 }: ClassroomsSectionProps) {
   const toast = useToast();
+  const { currentUser } = useAuth();
 
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [activeClassroom, setActiveClassroom] = useState<Classroom | null>(null);
@@ -66,13 +68,15 @@ export function ClassroomsSection({
         const initial = found || clsData[0];
         setActiveClassroom(initial);
         if (onSelectClassroom) onSelectClassroom(initial);
+      } else {
+        setActiveClassroom(null);
       }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Lỗi khi tải dữ liệu lớp học", "Lỗi");
     } finally {
       setIsLoading(false);
     }
-  }, [selectedClassroomId, onSelectClassroom, toast]);
+  }, [selectedClassroomId, onSelectClassroom, toast, currentUser?.activeOrganizationId]);
 
   const loadEnrollments = useCallback(async (clsId: string) => {
     try {

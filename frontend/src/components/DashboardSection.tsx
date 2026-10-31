@@ -61,7 +61,11 @@ export function DashboardSection({
           <div className="space-y-2 max-w-xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md text-[11px] font-bold text-white/90">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-              <span>Học kỳ 2026-1 • Trực tuyến</span>
+              <span>
+                {currentUser?.activeOrganizationName
+                  ? `${currentUser.activeOrganizationName} • Học kỳ 2026-1`
+                  : "Tài khoản cá nhân • Học kỳ 2026-1"}
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
               Xin chào, {currentUser?.fullName || "Giảng viên / Quản trị viên"}!
